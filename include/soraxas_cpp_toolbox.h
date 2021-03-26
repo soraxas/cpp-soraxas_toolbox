@@ -76,3 +76,16 @@ private:
     typedef std::chrono::duration<double, std::ratio<1> > second_;
     std::chrono::time_point<clock_> beg_;
 };
+
+// variadic print function
+
+template <typename T1>
+void print(T1 first) {
+  std::cout << first;
+}
+
+template <typename T1, typename... T2>
+void print(T1 first, T2... rest) {
+  std::cout << first;
+  print(rest...);
+}
