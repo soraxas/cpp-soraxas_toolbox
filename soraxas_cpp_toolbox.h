@@ -17,6 +17,16 @@ std::ostream& operator<< (std::ostream& out, const std::vector<T>& v) {
   return out;
 }
 
+////////////////////////////////////////////////////////////////////////
+// extend a vector with a vector
+template <typename T>
+void vector_extend_vector(std::vector<T> v1, std::vector<T> v2) {
+  
+  // v1.reserve(v1.size() + distance(v2.begin(), v2.end()));  // more generic
+  v1.reserve(v1.size() + v2.size());
+  v1.insert(v1.end(),v2.begin(),v2.end());
+}
+
 
 #include <algorithm>
 #include <vector>
