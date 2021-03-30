@@ -137,10 +137,65 @@ private:
   std::chrono::time_point<clock_> beg_;
 };
 
+#include <variant>
+class Stats {
+  /* A class that stores stats for performing basic performance test */
+public:
+  using internal_variant = std::variant<long, int, double, float>;
+
+  // double is the default type
+  template <class T = double> T &of(const std::string &key) {
+    auto val_it = data.find(key);
+    if (val_it != data.end()) {
+      // return stored reference
+      return std::get<T>(val_it->second);
+    }
+
+    // not found. Default to zero.
+    data[key] = internal_variant((T)0); // cast to ensure correct type
+    return std::get<T>(data[key]);
+  }
+
+  internal_variant &get(const std::string &key) { return data[key]; }
+
+  template <typename T> void format_item(T &stream) const {
+    // this works with anything that accepts << operator (and returns itself)
+    bool firstitem = true;
+    for (auto &&item : data) {
+      if (firstitem)
+        firstitem = false;
+      else
+        stream << ", ";
+      stream << item.first << ": ";
+      std::visit([&stream](const auto &x) { stream << x; }, item.second);
+    }
+  }
+
+  operator std::string() const {
+    std::stringstream ss;
+    ss << "{";
+    format_item(ss);
+    ss << "}";
+    return ss.str();
+  }
+
+  friend std::ostream &operator<<(std::ostream &_stream, Stats const &t) {
+    _stream << std::string(t);
+    return _stream;
+  }
+
+  std::map<std::string, internal_variant> data;
+};
+
 // variadic print function
 template <typename T1> void print(T1 first) { std::cout << first; }
 
 template <typename T1, typename... T2> void print(T1 first, T2... rest) {
   std::cout << first;
   print(rest...);
+}
+
+template <typename... T> void println(T... rest) {
+  print(rest...);
+  std::cout << std::endl;
 }
