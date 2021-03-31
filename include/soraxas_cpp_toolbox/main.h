@@ -138,11 +138,17 @@ private:
 };
 
 #include <variant>
+
+namespace sxs {
+
+using stats_internal_variant = std::variant<long, int, double, float>;
+using stats_aggregate_internal_variant =
+    std::variant<std::vector<long>, std::vector<int>, std::vector<double>,
+                 std::vector<float>>;
+
 class Stats {
   /* A class that stores stats for performing basic performance test */
 public:
-  using internal_variant = std::variant<long, int, double, float>;
-
   // double is the default type
   template <class T = double> T &of(const std::string &key) {
     auto val_it = data.find(key);
@@ -152,11 +158,11 @@ public:
     }
 
     // not found. Default to zero.
-    data[key] = internal_variant((T)0); // cast to ensure correct type
+    data[key] = stats_internal_variant((T)0); // cast to ensure correct type
     return std::get<T>(data[key]);
   }
 
-  internal_variant &get(const std::string &key) { return data[key]; }
+  stats_internal_variant &get(const std::string &key) { return data[key]; }
 
   template <typename T> void format_item(T &stream) const {
     // this works with anything that accepts << operator (and returns itself)
@@ -184,8 +190,59 @@ public:
     return _stream;
   }
 
-  std::map<std::string, internal_variant> data;
+  void reset() { data.clear(); }
+
+  std::map<std::string, stats_internal_variant> data;
 };
+
+class StatsAggregate {
+  /* Given the Stats object, aggregate results into a std list */
+public:
+  StatsAggregate() = default;
+
+  StatsAggregate(const Stats &stats) { append(stats); }
+
+  void append(const Stats &stats) {
+    for (auto &&item : stats.data) {
+      // always push the item as a double (easier...)
+      // this will always down-cast int/long/float within Stats to double
+      std::visit(
+          [this, &item](const auto &x) { data[item.first].push_back(x); },
+          item.second);
+    }
+  }
+
+  operator std::string() const {
+    bool firstitem = true;
+    std::stringstream ss;
+    ss << "{";
+    for (auto &&item : data) {
+      if (firstitem)
+        firstitem = false;
+      else
+        ss << ", ";
+      ss << item.first << ":[";
+      for (int i = 0; i < item.second.size(); ++i) {
+        if (i > 0)
+          ss << ",";
+        ss << item.second[i];
+      }
+      ss << "]";
+    }
+    ss << "}";
+    return ss.str();
+  }
+
+  friend std::ostream &operator<<(std::ostream &_stream,
+                                  StatsAggregate const &t) {
+    _stream << std::string(t);
+    return _stream;
+  }
+
+  std::map<std::string, std::vector<double>> data;
+};
+
+} // end of namespace sxs
 
 // variadic print function
 template <typename T1> void print(T1 first) { std::cout << first; }
