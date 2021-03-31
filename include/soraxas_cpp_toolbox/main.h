@@ -46,19 +46,9 @@ long long int indexOf(const std::vector<T> &vector, const T &data,
   return -1;
 }
 
-#include <sstream>
-
-struct stringbuilder {
-  std::stringstream ss;
-  template <typename T> stringbuilder &operator<<(const T &data) {
-    ss << data;
-    return *this;
-  }
-  operator std::string() { return ss.str(); }
-};
-
 #include <chrono>
 #include <iostream>
+#include <sstream>
 
 std::string format_time_to_human_readable(double elapsed, int precision = 3) {
   std::stringstream ss;
@@ -100,16 +90,16 @@ public:
   }
 
   operator std::string() const {
-    stringbuilder sb;
+    std::stringstream ss;
     double _elapsed = elapsed();
-    sb << "[" << name
+    ss << "[" << name
        << "] elapsed: " << format_time_to_human_readable(_elapsed);
     if (m_counts > 0) {
-      sb << " avg: ";
-      sb << format_time_to_human_readable(_elapsed / m_counts);
-      sb << "/it";
+      ss << " avg: ";
+      ss << format_time_to_human_readable(_elapsed / m_counts);
+      ss << "/it";
     }
-    return std::string(sb);
+    return ss.str();
   }
 
   friend std::ostream &operator<<(std::ostream &_stream, Timer const &t) {
