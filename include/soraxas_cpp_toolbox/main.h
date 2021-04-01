@@ -23,11 +23,12 @@ std::ostream &operator<<(std::ostream &out, const std::vector<T> &v) {
 ////////////////////////////////////////////////////////////////////////
 // extend a vector with a vector
 template <typename T>
-void vector_extend_vector(std::vector<T> v1, std::vector<T> v2) {
+void vector_extend_vector(std::vector<T> &container, const std::vector<T> &v2) {
 
-  // v1.reserve(v1.size() + distance(v2.begin(), v2.end()));  // more generic
-  v1.reserve(v1.size() + v2.size());
-  v1.insert(v1.end(), v2.begin(), v2.end());
+  // container.reserve(container.size() + distance(v2.begin(), v2.end()));  //
+  // more generic
+  container.reserve(container.size() + v2.size());
+  container.insert(container.end(), v2.begin(), v2.end());
 }
 
 #include <algorithm>
@@ -47,6 +48,7 @@ long long int indexOf(const std::vector<T> &vector, const T &data,
 }
 
 #include <chrono>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 
@@ -127,33 +129,57 @@ private:
   std::chrono::time_point<clock_> beg_;
 };
 
+#if __cplusplus >= 201703L
 #include <variant>
+namespace sxs {
+namespace variant {
+using std::get;
+using std::variant;
+using std::visit;
+} // namespace variant
+} // namespace sxs
+#else
+#include "external/variant.hpp"
+namespace sxs {
+namespace variant {
+using mpark::get;
+using mpark::variant;
+using mpark::visit;
+} // namespace variant
+} // namespace sxs
+#endif
 
 namespace sxs {
 
-using stats_internal_variant = std::variant<long, int, double, float>;
+using stats_internal_variant = sxs::variant::variant<long, int, double, float>;
 using stats_aggregate_internal_variant =
-    std::variant<std::vector<long>, std::vector<int>, std::vector<double>,
-                 std::vector<float>>;
+    sxs::variant::variant<std::vector<long>, std::vector<int>,
+                          std::vector<double>, std::vector<float>>;
 
 class Stats {
   /* A class that stores stats for performing basic performance test */
 public:
   // double is the default type
-  template <class T = double> T &of(const std::string &key) {
+  template <
+      class Numeric = double,
+      typename = std::enable_if_t<std::is_arithmetic<Numeric>::value, Numeric>>
+  Numeric &of(const std::string &key) {
     auto val_it = data.find(key);
     if (val_it != data.end()) {
       // return stored reference
-      return std::get<T>(val_it->second);
+      return sxs::variant::get<Numeric>(val_it->second);
     }
 
     // not found. Default to zero.
-    data[key] = stats_internal_variant((T)0); // cast to ensure correct type
-    return std::get<T>(data[key]);
+    data[key] = stats_internal_variant((Numeric)0); // cast to ensure correct
+                                                    // type
+    return sxs::variant::get<Numeric>(data[key]);
   }
 
+  // return the actual std::variant
   stats_internal_variant &get(const std::string &key) { return data[key]; }
 
+  // nicely format the contained items to the input stream
   template <typename T> void format_item(T &stream) const {
     // this works with anything that accepts << operator (and returns itself)
     bool firstitem = true;
@@ -163,7 +189,8 @@ public:
       else
         stream << ", ";
       stream << item.first << ": ";
-      std::visit([&stream](const auto &x) { stream << x; }, item.second);
+      sxs::variant::visit([&stream](const auto &x) { stream << x; },
+                          item.second);
     }
   }
 
@@ -196,7 +223,7 @@ public:
     for (auto &&item : stats.data) {
       // always push the item as a double (easier...)
       // this will always down-cast int/long/float within Stats to double
-      std::visit(
+      sxs::variant::visit(
           [this, &item](const auto &x) { data[item.first].push_back(x); },
           item.second);
     }
@@ -228,6 +255,8 @@ public:
     _stream << std::string(t);
     return _stream;
   }
+
+  const std::map<std::string, std::vector<double>> &get() const { return data; }
 
   std::map<std::string, std::vector<double>> data;
 };

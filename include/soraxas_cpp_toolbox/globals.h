@@ -2,14 +2,30 @@
  * This should be compiled using C++17 because of the use of inline variable
  */
 
+#ifndef SXS_GLOBALS
+#define SXS_GLOBALS
+
 #include "main.h"
 #include <variant>
 
 namespace sxs {
 namespace globals {
 
-inline static Stats stats = Stats();
-inline static std::map<std::string, std::shared_ptr<void>> storage;
+extern Stats stats;
+extern std::map<std::string, std::shared_ptr<void>> storage;
+// inline static Stats stats = Stats();
+// inline static std::map<std::string, std::shared_ptr<void>> storage;
+
+#ifdef SXS_GLOBALS_SETUP_STORAGE
+sxs::Stats stats = sxs::Stats();
+std::map<std::string, std::shared_ptr<void>> storage;
+#endif
+
+} // namespace globals
+} // namespace sxs
+
+namespace sxs {
+namespace globals {
 
 template <typename T> std::shared_ptr<T> create(const std::string &key, T arg) {
   // create a shared ptr object in storage, then return the ptr
@@ -36,3 +52,5 @@ template <typename T> T &get(const std::string &key) {
 // namespace alias
 namespace g = globals;
 } // namespace sxs
+
+#endif // SXS_GLOBALS
