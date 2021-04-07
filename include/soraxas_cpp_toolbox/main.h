@@ -120,13 +120,14 @@ public:
   void set_autoprint() { m_autoprint = true; }
 
 private:
-  std::string name;
-  bool m_autoprint;
-  bool m_print_starter;
-  int m_counts;
   typedef std::chrono::high_resolution_clock clock_;
   typedef std::chrono::duration<double, std::ratio<1>> second_;
+
   std::chrono::time_point<clock_> beg_;
+  std::string name;
+  bool m_autoprint;
+  int m_counts;
+  bool m_print_starter;
 };
 
 #if __cplusplus >= 201703L
@@ -239,7 +240,7 @@ public:
       else
         ss << ", ";
       ss << item.first << ":[";
-      for (int i = 0; i < item.second.size(); ++i) {
+      for (size_t i = 0; i < item.second.size(); ++i) {
         if (i > 0)
           ss << ",";
         ss << item.second[i];
