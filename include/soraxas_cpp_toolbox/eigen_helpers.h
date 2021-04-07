@@ -1,10 +1,11 @@
-#include <Eigen/Dense>
+#pragma once
 
+#include <Eigen/Dense>
 
 template <typename datatype, int dimension>
 void eigen_unpack_into_separate_dim(
-    const std::vector<Eigen::Matrix<datatype, dimension, 1>>& vec,
-    std::array<std::vector<datatype>*, dimension> vec_to_store_unpacked) {
+    const std::vector<Eigen::Matrix<datatype, dimension, 1>> &vec,
+    std::array<std::vector<datatype> *, dimension> vec_to_store_unpacked) {
   /*
    * Given a std::vector<ArrayXd>, split it into X many std::vector<double>
    *
@@ -29,7 +30,7 @@ void eigen_unpack_into_separate_dim(
 
 // std::vector<Eigen::Vector2d> eigen_convert_to(const Eigen::ArrayX2d& arr) {
 template <typename datatype, int col>
-auto eigen_convert_to(const Eigen::Array<datatype, Eigen::Dynamic, col>& arr) {
+auto eigen_convert_to(const Eigen::Array<datatype, Eigen::Dynamic, col> &arr) {
   /*
    * Given ArrayX2d, unpack it into a vector of vector2d
    * e.g.
@@ -44,7 +45,7 @@ auto eigen_convert_to(const Eigen::Array<datatype, Eigen::Dynamic, col>& arr) {
 
 template <typename datatype, int col>
 // auto eigen_map_to(std::vector<Eigen::Vector2d>& vec) {
-auto eigen_map_to(std::vector<Eigen::Matrix<datatype, col, 1>>& vec) {
+auto eigen_map_to(std::vector<Eigen::Matrix<datatype, col, 1>> &vec) {
   /*
    * Given std::vector<vectorXd>, map it into an Eigen::ArrayXd (point to same
    * memory)
@@ -58,15 +59,13 @@ auto eigen_map_to(std::vector<Eigen::Matrix<datatype, col, 1>>& vec) {
 
 //////////////////////////////////////////////////
 
-template <typename T>
-const auto vec_as_eigen(const std::vector<T>& v) {
+template <typename T> const auto vec_as_eigen(const std::vector<T> &v) {
   return Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 1>>(v.data(),
                                                                v.size());
 }
 
-
-//template <typename T>
-//class PreAllocator {
+// template <typename T>
+// class PreAllocator {
 // private:
 //  T* memory_ptr;
 //  std::size_t memory_size;
@@ -98,4 +97,3 @@ const auto vec_as_eigen(const std::vector<T>& v) {
 //
 //  size_type max_size() const { return memory_size; }
 //};
-
