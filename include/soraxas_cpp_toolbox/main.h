@@ -124,6 +124,7 @@ std::string format_time2readable(std::vector<double> all_elapsed,
 #include "external/ordered-map/ordered_map.h"
 #include <iostream>
 
+namespace sxs {
 class Timer {
 public:
   Timer(const std::string &name = "", bool print_starter = false)
@@ -249,6 +250,7 @@ private:
   int m_counts;
   bool m_print_starter;
 };
+} // namespace sxs
 
 #if __cplusplus >= 201703L
 #include <variant>
@@ -271,116 +273,6 @@ using mpark::visit;
 #endif
 
 namespace sxs {
-
-using stats_internal_variant = sxs::variant::variant<long, int, double, float>;
-using stats_aggregate_internal_variant =
-    sxs::variant::variant<std::vector<long>, std::vector<int>,
-                          std::vector<double>, std::vector<float>>;
-
-class Stats {
-  /* A class that stores stats for performing basic performance test */
-public:
-  // double is the default type
-  template <
-      class Numeric = double,
-      typename = std::enable_if_t<std::is_arithmetic<Numeric>::value, Numeric>>
-  Numeric &of(const std::string &key) {
-    auto val_it = data.find(key);
-    if (val_it != data.end()) {
-      // return stored reference
-      return sxs::variant::get<Numeric>(val_it->second);
-    }
-
-    // not found. Default to zero.
-    data[key] = stats_internal_variant((Numeric)0); // cast to ensure correct
-                                                    // type
-    return sxs::variant::get<Numeric>(data[key]);
-  }
-
-  // return the actual std::variant
-  stats_internal_variant &get(const std::string &key) { return data[key]; }
-
-  // nicely format the contained items to the input stream
-  template <typename T> void format_item(T &stream) const {
-    // this works with anything that accepts << operator (and returns itself)
-    bool firstitem = true;
-    for (auto &&item : data) {
-      if (firstitem)
-        firstitem = false;
-      else
-        stream << ", ";
-      stream << item.first << ": ";
-      sxs::variant::visit([&stream](const auto &x) { stream << x; },
-                          item.second);
-    }
-  }
-
-  operator std::string() const {
-    std::stringstream ss;
-    ss << "{";
-    format_item(ss);
-    ss << "}";
-    return ss.str();
-  }
-
-  friend std::ostream &operator<<(std::ostream &_stream, Stats const &t) {
-    _stream << std::string(t);
-    return _stream;
-  }
-
-  void reset() { data.clear(); }
-
-  std::map<std::string, stats_internal_variant> data;
-};
-
-class StatsAggregate {
-  /* Given the Stats object, aggregate results into a std list */
-public:
-  StatsAggregate() = default;
-
-  StatsAggregate(const Stats &stats) { append(stats); }
-
-  void append(const Stats &stats) {
-    for (auto &&item : stats.data) {
-      // always push the item as a double (easier...)
-      // this will always down-cast int/long/float within Stats to double
-      sxs::variant::visit(
-          [this, &item](const auto &x) { data[item.first].push_back(x); },
-          item.second);
-    }
-  }
-
-  operator std::string() const {
-    bool firstitem = true;
-    std::stringstream ss;
-    ss << "{";
-    for (auto &&item : data) {
-      if (firstitem)
-        firstitem = false;
-      else
-        ss << ", ";
-      ss << item.first << ":[";
-      for (size_t i = 0; i < item.second.size(); ++i) {
-        if (i > 0)
-          ss << ",";
-        ss << item.second[i];
-      }
-      ss << "]";
-    }
-    ss << "}";
-    return ss.str();
-  }
-
-  friend std::ostream &operator<<(std::ostream &_stream,
-                                  StatsAggregate const &t) {
-    _stream << std::string(t);
-    return _stream;
-  }
-
-  const std::map<std::string, std::vector<double>> &get() const { return data; }
-
-  std::map<std::string, std::vector<double>> data;
-};
 
 // variadic print function
 template <typename T1> void print(T1 first) { std::cout << first; }
