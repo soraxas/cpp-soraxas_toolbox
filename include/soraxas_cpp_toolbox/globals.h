@@ -6,6 +6,7 @@
 #define SXS_GLOBALS
 
 #include "main.h"
+#include "stats.h"
 #include <thread>
 #include <variant>
 
@@ -33,7 +34,7 @@ static std::map<std::thread::id, Stats> &_get_stats_container() {
 static void _allocate_stats_for_this_thread(std::thread::id thread_id) {
   auto &thread_lock = _get_lock();
   thread_lock.lock();
-  _get_stats_container()[thread_id] = Stats{};
+  _get_stats_container()[thread_id].reset(); // init
   thread_lock.unlock();
 }
 } // unnamed namespace
@@ -60,12 +61,6 @@ static void print_all_stored_stats() {
   std::cout << "===============================" << std::endl;
 }
 
-} // namespace globals
-} // namespace sxs
-
-namespace sxs {
-namespace globals {
-
 template <typename T> std::shared_ptr<T> create(const std::string &key, T arg) {
   // create a shared ptr object in storage, then return the ptr
   std::shared_ptr<T> ptr = std::make_shared<T>(std::move(arg));
@@ -89,8 +84,7 @@ template <typename T> T &get(const std::string &key) {
 }
 } // namespace globals
 
-// namespace alias
-namespace g = globals;
+namespace g = globals; // namespace alias
 } // namespace sxs
 
 #endif // SXS_GLOBALS
