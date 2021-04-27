@@ -7,3 +7,9 @@
 [submodule "include/soraxas_cpp_toolbox/external/_repo/variant"]
 	path = include/soraxas_cpp_toolbox/external/_repo/variant
 	url = https://github.com/mpark/variant
+[submodule "include/soraxas_cpp_toolbox/external/_repo/pprint"]
+	path = include/soraxas_cpp_toolbox/external/_repo/pprint
+	url = https://github.com/p-ranav/pprint
+[submodule "include/soraxas_cpp_toolbox/external/_repo/any-lite"]
+	path = include/soraxas_cpp_toolbox/external/_repo/any-lite
+	url = https://github.com/martinmoene/any-lite.git
