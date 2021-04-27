@@ -3,17 +3,27 @@
 #include <cxxabi.h>
 #include <iterator> // needed for std::ostram_iterator
 
+#define SXS_USE_PPRINT
+
 // template for printing vector container
 template <typename T>
 std::ostream &operator<<(std::ostream &out, const std::vector<T> &v) {
   int status;
   char *demangled = abi::__cxa_demangle(typeid(T).name(), NULL, NULL, &status);
-
-  out << "std::vec<" << demangled << ">";
-  out << "(" << v.size() << ")[";
-  std::copy(v.begin(), v.end(), std::ostream_iterator<T>(out, ", "));
-  if (!v.empty())
-    out << "\b\b";
+  std::string demangled_str(demangled);
+  if (demangled_str != "double" && demangled_str != "int" &&
+      demangled_str != "float") {
+    out << "<" << demangled_str << ">";
+  }
+  out << "[";
+  bool first = true;
+  for (auto &&item : v) {
+    if (!first)
+      out << ", ";
+    else
+      first = false;
+    out << item;
+  }
   out << "]";
   if (status)
     free(demangled);
@@ -21,9 +31,11 @@ std::ostream &operator<<(std::ostream &out, const std::vector<T> &v) {
 }
 
 ////////////////////////////////////////////////////////////////////////
+namespace sxs {
+namespace vec {
 // extend a vector with a vector
 template <typename T>
-void vector_extend_vector(std::vector<T> &container, const std::vector<T> &v2) {
+inline void extend(std::vector<T> &container, const std::vector<T> &v2) {
 
   // container.reserve(container.size() + distance(v2.begin(), v2.end()));  //
   // more generic
@@ -31,12 +43,39 @@ void vector_extend_vector(std::vector<T> &container, const std::vector<T> &v2) {
   container.insert(container.end(), v2.begin(), v2.end());
 }
 
+template <typename T> inline T sum(const std::vector<T> &container) {
+  assert(container.size() > 0);
+  T total = container[0]; // should be copy construct
+  for (size_t i = 1; i < container.size(); ++i)
+    total += container[i];
+  return total;
+}
+
+template <typename T> inline T max(const std::vector<T> &container) {
+  assert(container.size() > 0);
+  T max = container[0]; // should be copy construct
+  for (size_t i = 1; i < container.size(); ++i)
+    max = std::max(max, container[i]);
+  return max;
+}
+
+template <typename T> inline T min(const std::vector<T> &container) {
+  assert(container.size() > 0);
+  T min = container[0]; // should be copy construct
+  for (size_t i = 1; i < container.size(); ++i)
+    min = std::min(min, container[i]);
+  return min;
+}
+
+} // namespace vec
+} // namespace sxs
+
 #include <algorithm>
 #include <vector>
 
 template <typename T>
-long long int indexOf(const std::vector<T> &vector, const T &data,
-                      bool throw_exception = false) {
+inline long long int indexOf(const std::vector<T> &vector, const T &data,
+                             bool throw_exception = false) {
 
   auto find_result = std::find(vector.begin(), vector.end(), data);
   if (find_result != vector.end()) {
@@ -55,11 +94,12 @@ long long int indexOf(const std::vector<T> &vector, const T &data,
 #include <numeric>
 
 namespace sxs {
-double compute_sum(std::vector<double> nums) {
+inline double compute_sum(std::vector<double> nums) {
   return std::accumulate(nums.begin(), nums.end(), 0.);
 }
 
-std::pair<double, double> compute_mean_and_stdev(std::vector<double> nums) {
+inline std::pair<double, double>
+compute_mean_and_stdev(std::vector<double> nums) {
   double sum = compute_sum(nums);
   double mean = sum / nums.size();
 
@@ -74,7 +114,7 @@ std::pair<double, double> compute_mean_and_stdev(std::vector<double> nums) {
 
 ////////////////////////////////////////////////////////////
 
-std::pair<double, std::string>
+inline std::pair<double, std::string>
 _get_time_factor_and_unit(double elapsed, bool fix_width = false) {
   double factor;
   std::string unit;
@@ -99,7 +139,7 @@ _get_time_factor_and_unit(double elapsed, bool fix_width = false) {
 #define _FIX_WIDTH_DECIMAL(precision) /* +1 is for the decimal point */        \
   std::setprecision(precision) << std::left << std::setw(precision + 1)
 
-std::string format_time2readable(double elapsed, int precision = 3) {
+inline std::string format_time2readable(double elapsed, int precision = 3) {
   auto factor_and_unit = _get_time_factor_and_unit(elapsed, true);
   std::stringstream ss;
   ss << _FIX_WIDTH_DECIMAL(precision) << (elapsed * factor_and_unit.first)
@@ -107,8 +147,8 @@ std::string format_time2readable(double elapsed, int precision = 3) {
   return ss.str();
 }
 
-std::string format_time2readable(std::vector<double> all_elapsed,
-                                 int precision = 3) {
+inline std::string format_time2readable(std::vector<double> all_elapsed,
+                                        int precision = 3) {
   auto mean_stdev = compute_mean_and_stdev(all_elapsed);
   // use mean to get factor and units
   auto factor_and_unit = _get_time_factor_and_unit(mean_stdev.first, true);

@@ -64,6 +64,14 @@ template <typename T> const auto vec_as_eigen(const std::vector<T> &v) {
                                                                v.size());
 }
 
+template <int Num> auto eigen_as_vec(Eigen::Matrix<double, Num, 1> &mat) {
+  return std::vector<double>(mat.data(), mat.data() + mat.size());
+}
+
+template <int Num> auto eigen_as_vec(const Eigen::Matrix<double, Num, 1> &mat) {
+  return std::vector<double>(mat.data(), mat.data() + mat.size());
+}
+
 // template <typename T>
 // class PreAllocator {
 // private:

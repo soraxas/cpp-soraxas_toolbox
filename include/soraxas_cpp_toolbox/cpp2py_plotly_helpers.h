@@ -35,7 +35,7 @@ void stats_aggregate_to_boxplot(
         throw std::runtime_error("Given StatsAggregate vector contains "
                                  "inconsistent stats.");
       auto stats_vals = (*iter).second;
-      vector_extend_vector(y, stats_vals);
+      sxs::vec::extend(y, stats_vals);
       label.insert(label.end(), stats_vals.size(), stats_name);
     }
     container.emplace_back(stats_instance, label, y);

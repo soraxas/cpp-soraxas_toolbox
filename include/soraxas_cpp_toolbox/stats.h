@@ -8,6 +8,19 @@
 #include "soraxas_cpp_toolbox/external/csv.hpp"
 #include "soraxas_cpp_toolbox/main.h"
 
+#ifdef SXS_USE_PPRINT
+#include "soraxas_cpp_toolbox/external/pprint.hpp"
+#endif
+
+#define SXS_STATS_BUILD_WITH_MUTEX
+#ifdef SXS_STATS_BUILD_WITH_MUTEX
+#define SXS_STATS_MUTEX_LOCK m_data_lock.lock()
+#define SXS_STATS_MUTEX_UNLOCK m_data_lock.unlock()
+#else
+#define SXS_STATS_MUTEX_LOCK
+#define SXS_STATS_MUTEX_UNLOCK
+#endif
+
 namespace sxs {
 
 using stats_internal_variant = sxs::variant::variant<long, int, double, float>;
@@ -28,25 +41,34 @@ public:
       class Numeric = double,
       typename = std::enable_if_t<std::is_arithmetic<Numeric>::value, Numeric>>
   Numeric &of(const std::string &key) {
+    SXS_STATS_MUTEX_LOCK;
     auto val_it = data.find(key);
     if (val_it != data.end()) {
       // return stored reference
-      return sxs::variant::get<Numeric>(val_it.value());
+      auto &val = sxs::variant::get<Numeric>(val_it.value());
+      SXS_STATS_MUTEX_UNLOCK;
+      return val;
     }
-
     // not found. Default to zero.
     data[key] = stats_internal_variant((Numeric)0); // cast to ensure correct
                                                     // type
-    return sxs::variant::get<Numeric>(data[key]);
+    auto &val = sxs::variant::get<Numeric>(data[key]);
+    SXS_STATS_MUTEX_UNLOCK;
+    return val;
   }
 
   // return the actual std::variant
-  stats_internal_variant &get(const std::string &key) { return data[key]; }
+  stats_internal_variant &get(const std::string &key) {
+    SXS_STATS_MUTEX_LOCK;
+    auto &val = data[key];
+    SXS_STATS_MUTEX_UNLOCK;
+  }
 
   // nicely format the contained items to the input stream
   template <typename T> void format_item(T &stream) const {
     // this works with anything that accepts << operator (and returns itself)
     bool firstitem = true;
+    SXS_STATS_MUTEX_LOCK;
     for (auto &&item : data) {
       if (firstitem)
         firstitem = false;
@@ -56,22 +78,50 @@ public:
       sxs::variant::visit([&stream](const auto &x) { stream << x; },
                           item.second);
     }
+    SXS_STATS_MUTEX_UNLOCK;
   }
 
   operator std::string() const {
     std::stringstream ss;
+#ifdef SXS_USE_PPRINT
+    pprint::PrettyPrinter printer(ss);
+    printer.print(data);
+#else
     ss << "{";
     format_item(ss);
     ss << "}";
+#endif
     return ss.str();
   }
 
   friend std::ostream &operator<<(std::ostream &_stream, Stats const &t) {
+//#ifdef SXS_USE_PPRINT
+//#else
+//#endif
     _stream << std::string(t);
     return _stream;
   }
 
-  void reset() { data.clear(); }
+//  friend std::ostream& operator<<(std::ostream& os, const Vector3& v) {
+//    pprint::PrettyPrinter printer(os);
+//    printer.print_inline(std::make_tuple(v.x, v.y, v.z));
+//    return os;
+//  }
+//
+//  friend std::ostream& operator<<(std::ostream& os, const Mesh& mesh) {
+//    pprint::PrettyPrinter printer(os);
+//    printer.print("Mesh {");
+//    printer.indent(2);
+//    printer.print_inline("vertices:", mesh.vertices);
+//    printer.print("}");
+//    return os;
+//  }
+
+  void reset() {
+    SXS_STATS_MUTEX_LOCK;
+    data.clear();
+    SXS_STATS_MUTEX_UNLOCK;
+  }
 
   ~Stats() {
     if (!data.empty()) {
@@ -94,6 +144,7 @@ public:
      * reutrned by the map iterator maintains a stable order. */
     // write header row
     std::vector<std::string> cols;
+    SXS_STATS_MUTEX_LOCK;
     if (!writer_stream_first_row_written) {
       if (include_timestamp && m_timer)
         cols.push_back("timestamp");
@@ -112,6 +163,7 @@ public:
           [&cols](const auto &x) { cols.push_back(std::to_string(x)); },
           item.second);
     }
+    SXS_STATS_MUTEX_UNLOCK;
     csv_output_file->write_row(cols);
   }
 
@@ -121,6 +173,9 @@ public:
   bool writer_stream_first_row_written;
 
   tsl::ordered_map<std::string, stats_internal_variant> data;
+#ifdef SXS_STATS_BUILD_WITH_MUTEX
+  mutable std::mutex m_data_lock;
+#endif
 };
 
 class StatsAggregate {
