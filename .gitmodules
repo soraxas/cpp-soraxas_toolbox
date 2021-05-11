@@ -13,3 +13,9 @@
 [submodule "include/soraxas_cpp_toolbox/external/_repo/any-lite"]
 	path = include/soraxas_cpp_toolbox/external/_repo/any-lite
 	url = https://github.com/martinmoene/any-lite.git
+[submodule "include/soraxas_cpp_toolbox/external/_repo/concurrentqueue"]
+	path = include/soraxas_cpp_toolbox/external/_repo/concurrentqueue
+	url = https://github.com/cameron314/concurrentqueue.git
+[submodule "include/soraxas_cpp_toolbox/external/_repo/filesystem"]
+	path = include/soraxas_cpp_toolbox/external/_repo/filesystem
+	url = https://github.com/gulrak/filesystem.git
