@@ -8,7 +8,8 @@ template <typename Function, typename Args, typename Result, int MatData_B,
           int MatData_N, int MatData_order>
 auto batched_gradient_single_var(
     const Function &f,
-    Eigen::Matrix<dual, MatData_B, MatData_N, MatData_order> &batched_var,
+    Eigen::Matrix<autodiff::dual, MatData_B, MatData_N, MatData_order>
+        &batched_var,
     Args &&args, Result &result)
     -> Eigen::Matrix<double, MatData_B, MatData_N, MatData_order> {
 
@@ -46,4 +47,4 @@ auto batched_gradient_single_var(
   return g;
 }
 
-} // namespace autodiff
+} // namespace sxs
