@@ -23,10 +23,10 @@
 
 namespace sxs {
 
-using stats_internal_variant = sxs::variant::variant<long, int, double, float>;
+using stats_internal_variant = std::variant<long, int, double, float>;
 using stats_aggregate_internal_variant =
-    sxs::variant::variant<std::vector<long>, std::vector<int>,
-                          std::vector<double>, std::vector<float>>;
+    std::variant<std::vector<long>, std::vector<int>, std::vector<double>,
+                 std::vector<float>>;
 
 class Stats {
   /* A class that stores stats for performing basic performance test */
@@ -45,15 +45,16 @@ public:
     auto val_it = data.find(key);
     if (val_it != data.end()) {
       // return stored reference
-      auto &val = sxs::variant::get<Numeric>(val_it.value());
+      auto &val = std::get<Numeric>(val_it.value());
       SXS_STATS_MUTEX_UNLOCK;
       return val;
     }
     // not found. Default to zero.
     data[key] = stats_internal_variant((Numeric)0); // cast to ensure correct
                                                     // type
-    auto &val = sxs::variant::get<Numeric>(data[key]);
+    auto &val = std::get<Numeric>(data[key]);
     SXS_STATS_MUTEX_UNLOCK;
+
     return val;
   }
 
@@ -62,6 +63,8 @@ public:
     SXS_STATS_MUTEX_LOCK;
     auto &val = data[key];
     SXS_STATS_MUTEX_UNLOCK;
+
+    return val;
   }
 
   // nicely format the contained items to the input stream
@@ -75,8 +78,7 @@ public:
       else
         stream << ", ";
       stream << item.first << ": ";
-      sxs::variant::visit([&stream](const auto &x) { stream << x; },
-                          item.second);
+      std::visit([&stream](const auto &x) { stream << x; }, item.second);
     }
     SXS_STATS_MUTEX_UNLOCK;
   }
@@ -95,27 +97,9 @@ public:
   }
 
   friend std::ostream &operator<<(std::ostream &_stream, Stats const &t) {
-//#ifdef SXS_USE_PPRINT
-//#else
-//#endif
     _stream << std::string(t);
     return _stream;
   }
-
-//  friend std::ostream& operator<<(std::ostream& os, const Vector3& v) {
-//    pprint::PrettyPrinter printer(os);
-//    printer.print_inline(std::make_tuple(v.x, v.y, v.z));
-//    return os;
-//  }
-//
-//  friend std::ostream& operator<<(std::ostream& os, const Mesh& mesh) {
-//    pprint::PrettyPrinter printer(os);
-//    printer.print("Mesh {");
-//    printer.indent(2);
-//    printer.print_inline("vertices:", mesh.vertices);
-//    printer.print("}");
-//    return os;
-//  }
 
   void reset() {
     SXS_STATS_MUTEX_LOCK;
@@ -159,9 +143,8 @@ public:
     if (include_timestamp && m_timer)
       cols.push_back(std::to_string(m_timer->elapsed()));
     for (auto &&item : data) {
-      sxs::variant::visit(
-          [&cols](const auto &x) { cols.push_back(std::to_string(x)); },
-          item.second);
+      std::visit([&cols](const auto &x) { cols.push_back(std::to_string(x)); },
+                 item.second);
     }
     SXS_STATS_MUTEX_UNLOCK;
     csv_output_file->write_row(cols);
@@ -189,7 +172,7 @@ public:
     for (auto &&item : stats.data) {
       // always push the item as a double (easier...)
       // this will always down-cast int/long/float within Stats to double
-      sxs::variant::visit(
+      std::visit(
           [this, &item](const auto &x) { data[item.first].push_back(x); },
           item.second);
     }
