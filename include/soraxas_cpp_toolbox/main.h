@@ -3,6 +3,8 @@
 #include <cxxabi.h>
 #include <iterator> // needed for std::ostram_iterator
 
+#include "soraxas_cpp_toolbox/future.h"
+
 #define SXS_USE_PPRINT
 
 // template for printing vector container
@@ -167,28 +169,36 @@ inline std::string format_time2readable(std::vector<double> all_elapsed,
 namespace sxs {
 class Timer {
 public:
-  Timer(const std::string &name = "", bool print_starter = false)
-      : beg_(clock_::now()), name(name), m_autoprint(false), m_counts(0),
-        m_print_starter(print_starter) {
+  Timer(const std::string &name = "", bool print_starter = false,
+        bool auto_print = true)
+      : beg_(clock_::now()), name(name), m_autoprint(auto_print), m_counts(0),
+        m_finished(false), m_print_starter(print_starter) {
     if (m_print_starter)
       std::cout << "[" << name << "] (computing...)" << std::flush;
   }
-  ~Timer() {
+  ~Timer() { finish(); }
+
+  void finish() {
+    if (m_finished)
+      return;
+    m_finished = true;
     if (m_autoprint) {
       if (m_print_starter)
         std::cout << '\r'; // erase line
       if (!stamped.empty())
         print_stamped_stats();
       else
-        std::cout << std::string(*this) << std::endl;
+        // run the current class' string operator
+        std::cout << operator std::string() << std::endl;
     }
   }
+
   void reset() { beg_ = clock_::now(); }
   double elapsed() const {
     return std::chrono::duration_cast<second_>(clock_::now() - beg_).count();
   }
 
-  void stamp(const std::string &stamp_string) {
+  void stamp(std::string &&stamp_string) {
     if (!_last_stamped_string.empty()) {
       //      std::stringstream ss;
       //      ss << _last_stamped_string << " -> " << stamp_string;
@@ -198,7 +208,7 @@ public:
               .count());
     }
     _last_stamped_clock = clock_::now();
-    _last_stamped_string = stamp_string;
+    _last_stamped_string = std::move(stamp_string);
   }
 
   void print_stamped_stats() {
@@ -269,6 +279,7 @@ public:
   void set_autoprint() { m_autoprint = true; }
 
 private:
+  bool m_finished;
   typedef std::chrono::high_resolution_clock clock_;
   typedef std::chrono::duration<double, std::ratio<1>> second_;
 
@@ -291,26 +302,6 @@ private:
   bool m_print_starter;
 };
 } // namespace sxs
-
-#if __cplusplus >= 201703L
-#include <variant>
-namespace sxs {
-namespace variant {
-using std::get;
-using std::variant;
-using std::visit;
-} // namespace variant
-} // namespace sxs
-#else
-#include "external/variant.hpp"
-namespace sxs {
-namespace variant {
-using mpark::get;
-using mpark::variant;
-using mpark::visit;
-} // namespace variant
-} // namespace sxs
-#endif
 
 namespace sxs {
 
