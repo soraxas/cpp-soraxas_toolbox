@@ -131,7 +131,7 @@ public:
 
   void disableAutoNewRow() { columnNum_ = -1; }
 
-  void initialise_timer() { timer = std::make_unique<Timer>(); }
+  void initialise_timer() { timer = std::make_unique<sxs::Timer>(); }
 
   double get_elapsed_time() {
     if (!timer)
@@ -149,7 +149,7 @@ protected:
   std::stringstream ss_;
 
 public:
-  std::unique_ptr<Timer> timer;
+  std::unique_ptr<sxs::Timer> timer;
 };
 
 class CSVInstantWriter : CSVWriterStream {
@@ -191,7 +191,7 @@ private:
   void disableAutoNewRow() = delete;
 
 public:
-  std::unique_ptr<Timer> timer;
+  std::unique_ptr<sxs::Timer> timer;
 };
 
 #endif // CSVWRITER_H
