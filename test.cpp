@@ -5,7 +5,7 @@
 // for abi namespace
 #include <cxxabi.h>
 
-#include "soraxas_cpp_toolbox/CSVWriter.h"
+#include "soraxas_cpp_toolbox/SimpleCSVWriter.h"
 
 int main(int argc, char **argv) {
 
@@ -42,4 +42,8 @@ int main(int argc, char **argv) {
 
     // writer.writeToFile("aa.csv");
 //     writer.writeToFile("aav.csv", true);
+//
+//
+
+    std::cout << sxs::get_home_dir() << std::endl;
 }

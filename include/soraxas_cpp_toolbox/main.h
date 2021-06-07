@@ -1,7 +1,11 @@
 #pragma once
 
 #include <cxxabi.h>
+#include <string>
 #include <iterator> // needed for std::ostram_iterator
+#include <cmath> // for std::sqrt
+#include <unistd.h> // for getting home dir
+#include <pwd.h> // for getting home dir
 
 #include "soraxas_cpp_toolbox/future.h"
 
@@ -407,4 +411,20 @@ void timeit(const Lambda &lambda, const std::string title = "untitled") {
   }
   print_message();
 }
+
+
+std::string get_home_dir() {
+  /*
+   * Return the current home directory
+   */
+  const char *homedir;
+  
+  // Check $HOME environment variable first before retrieving user's homedir
+  if ((homedir = getenv("HOME")) == NULL) {
+      homedir = getpwuid(getuid())->pw_dir;
+  }
+
+  return homedir;
+}
+
 } // end of namespace sxs
