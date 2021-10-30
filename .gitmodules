@@ -1,21 +1,21 @@
-[submodule "include/soraxas_cpp_toolbox/external/_repo/csv-parser"]
-	path = include/soraxas_cpp_toolbox/external/_repo/csv-parser
+[submodule "include/soraxas_toolbox/external/_repo/csv-parser"]
+	path = include/soraxas_toolbox/external/_repo/csv-parser
 	url = https://github.com/vincentlaucsb/csv-parser
-[submodule "include/soraxas_cpp_toolbox/external/_repo/ordered-map"]
-	path = include/soraxas_cpp_toolbox/external/_repo/ordered-map
+[submodule "include/soraxas_toolbox/external/_repo/ordered-map"]
+	path = include/soraxas_toolbox/external/_repo/ordered-map
 	url = https://github.com/Tessil/ordered-map.git
-[submodule "include/soraxas_cpp_toolbox/external/_repo/variant"]
-	path = include/soraxas_cpp_toolbox/external/_repo/variant
+[submodule "include/soraxas_toolbox/external/_repo/variant"]
+	path = include/soraxas_toolbox/external/_repo/variant
 	url = https://github.com/mpark/variant
-[submodule "include/soraxas_cpp_toolbox/external/_repo/pprint"]
-	path = include/soraxas_cpp_toolbox/external/_repo/pprint
+[submodule "include/soraxas_toolbox/external/_repo/pprint"]
+	path = include/soraxas_toolbox/external/_repo/pprint
 	url = https://github.com/p-ranav/pprint
-[submodule "include/soraxas_cpp_toolbox/external/_repo/any-lite"]
-	path = include/soraxas_cpp_toolbox/external/_repo/any-lite
+[submodule "include/soraxas_toolbox/external/_repo/any-lite"]
+	path = include/soraxas_toolbox/external/_repo/any-lite
 	url = https://github.com/martinmoene/any-lite.git
-[submodule "include/soraxas_cpp_toolbox/external/_repo/concurrentqueue"]
-	path = include/soraxas_cpp_toolbox/external/_repo/concurrentqueue
+[submodule "include/soraxas_toolbox/external/_repo/concurrentqueue"]
+	path = include/soraxas_toolbox/external/_repo/concurrentqueue
 	url = https://github.com/cameron314/concurrentqueue.git
-[submodule "include/soraxas_cpp_toolbox/external/_repo/filesystem"]
-	path = include/soraxas_cpp_toolbox/external/_repo/filesystem
+[submodule "include/soraxas_toolbox/external/_repo/filesystem"]
+	path = include/soraxas_toolbox/external/_repo/filesystem
 	url = https://github.com/gulrak/filesystem.git

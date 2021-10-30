@@ -7,8 +7,8 @@
 
 #else // < C++17
 
-#include "soraxas_cpp_toolbox/external/filesystem/filesystem.hpp"
-#include "soraxas_cpp_toolbox/external/variant.hpp"
+#include "soraxas_toolbox/external/filesystem/filesystem.hpp"
+#include "soraxas_toolbox/external/variant.hpp"
 
 namespace std {
 

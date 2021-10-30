@@ -5,11 +5,11 @@
 #ifndef SXS_STATS_H
 #define SXS_STATS_H
 
-#include "soraxas_cpp_toolbox/external/csv.hpp"
-#include "soraxas_cpp_toolbox/main.h"
+#include "soraxas_toolbox/external/csv.hpp"
+#include "soraxas_toolbox/main.h"
 
 #ifdef SXS_USE_PPRINT
-#include "soraxas_cpp_toolbox/external/pprint.hpp"
+#include "soraxas_toolbox/external/pprint.hpp"
 #endif
 
 #define SXS_STATS_BUILD_WITH_MUTEX

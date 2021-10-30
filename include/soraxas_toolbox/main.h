@@ -7,7 +7,7 @@
 #include <unistd.h> // for getting home dir
 #include <pwd.h> // for getting home dir
 
-#include "soraxas_cpp_toolbox/future.h"
+#include "soraxas_toolbox/future.h"
 
 #define SXS_USE_PPRINT
 
