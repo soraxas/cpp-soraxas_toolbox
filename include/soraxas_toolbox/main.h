@@ -317,6 +317,16 @@ template <typename T1, typename... T2> void print(T1 first, T2... rest) {
   print(rest...);
 }
 
+/*
+ *  Print an empty line
+ * */
+template <typename... T> void println() {
+  std::cout << std::endl;
+}
+
+/*
+ *  Print a comma separated list of any items
+ * */
 template <typename... T> void println(T... rest) {
   print(rest...);
   std::cout << std::endl;
