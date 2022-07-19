@@ -423,7 +423,7 @@ void timeit(const Lambda &lambda, const std::string title = "untitled") {
 }
 
 
-std::string get_home_dir() {
+inline std::string get_home_dir() {
   /*
    * Return the current home directory
    */
