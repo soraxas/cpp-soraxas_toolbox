@@ -463,4 +463,42 @@ inline std::string get_home_dir() {
   return homedir;
 }
 
+
+/*
+ * Auto string stream for format string and able to cast to string
+ */
+class StringFormatter {
+public:
+
+  StringFormatter() {
+  }
+
+  StringFormatter(const StringFormatter& other) {
+    ss << std::string(other);
+  }
+
+  template <typename T>
+  StringFormatter &operator<<(T thing) {
+    ss << thing;
+    return *this;
+  }
+
+  operator std::string() const {
+    return ss.str();
+  }
+
+  bool print() const {
+    sxs::println(operator std::string());
+    return false;
+  }
+
+  friend std::ostream &operator<<(std::ostream &_stream, StringFormatter const &thing) {
+    _stream << std::string(thing); // .to_string();
+    return _stream;
+  }
+
+private:
+  std::stringstream ss;
+};
+
 } // end of namespace sxs
