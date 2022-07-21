@@ -1,6 +1,6 @@
 #pragma once
 
-#if __cplusplus >= 201703L
+#if __cplusplus >= 201703L && __has_include(<filesystem>)
 
 #include <filesystem>
 #include <variant>

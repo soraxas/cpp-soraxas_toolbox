@@ -9,6 +9,8 @@
 
 #include "soraxas_toolbox/future.h"
 
+#include "forward_declare.h"
+
 #define SXS_USE_PPRINT
 
 // https://stackoverflow.com/questions/3767869/adding-message-to-assert
