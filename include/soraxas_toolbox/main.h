@@ -345,6 +345,15 @@ template <typename T1, typename... T2> void print(T1 first, T2... rest) {
   print(rest...);
 }
 
+template <typename T1> void print_spaced(T1 first) { print(first); }
+/*
+ *  Print a comma separated list of any items, with space in-between
+ * */
+template <typename T1, typename... T2> void print_spaced(T1 first, T2... rest) {
+  print(first, " ");
+  print_spaced(rest...);
+}
+
 /*
  *  Print an empty line
  * */
@@ -357,6 +366,14 @@ template <typename... T> void println() {
  * */
 template <typename... T> void println(T... rest) {
   print(rest...);
+  std::cout << std::endl;
+}
+
+/*
+ *  Print a comma separated list of any items, with space in-between
+ * */
+template <typename... T> void println_spaced(T... rest) {
+  print_spaced(rest...);
   std::cout << std::endl;
 }
 
