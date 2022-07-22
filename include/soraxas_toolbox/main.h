@@ -1,15 +1,15 @@
 #pragma once
 
-#include <cxxabi.h>
-#include <string>
+#include <cmath>    // for std::sqrt
 #include <iterator> // needed for std::ostram_iterator
-#include <cmath> // for std::sqrt
+#include <pwd.h>    // for getting home dir
+#include <string>
 #include <unistd.h> // for getting home dir
-#include <pwd.h> // for getting home dir
 
-#include "soraxas_toolbox/future.h"
+// #include "soraxas_toolbox/future.h"
 
 #include "forward_declare.h"
+#include "print_utils.h"
 
 #define SXS_USE_PPRINT
 
@@ -17,52 +17,27 @@
 #ifdef NDEBUG
 #define ASSERT(...) 0
 #else
-//https://stackoverflow.com/questions/3046889/optional-parameters-with-c-macros
-// The multiple macros that you would need anyway [as per: Crazy Eddie]
-#define ASSERT_0()         0
-#define ASSERT_1(condition)         ASSERT_2(condition, "")
-#define ASSERT_2(condition, message)\
-   (!(condition)) ?\
-      (std::cerr << "Assertion failed: (" << #condition << "), "\
-      << "function " << __FUNCTION__\
-      << ", file " << __FILE__\
-      << ", line " << __LINE__ << "."\
-      << std::endl << message << std::endl, abort(), 0) : 1
-// The interim macro that simply strips the excess and ends up with the required macro
-#define ASSERT_X(x,A,B,FUNC, ...)  FUNC
+// https://stackoverflow.com/questions/3046889/optional-parameters-with-c-macros
+//  The multiple macros that you would need anyway [as per: Crazy Eddie]
+#define ASSERT_0() 0
+#define ASSERT_1(condition) ASSERT_2(condition, "")
+#define ASSERT_2(condition, message)                                           \
+  (!(condition))                                                               \
+      ? (std::cerr << "Assertion failed: (" << #condition << "), "             \
+                   << "function " << __FUNCTION__ << ", file " << __FILE__     \
+                   << ", line " << __LINE__ << "." << std::endl                \
+                   << message << std::endl,                                    \
+         abort(), 0)                                                           \
+      : 1
+// The interim macro that simply strips the excess and ends up with the required
+// macro
+#define ASSERT_X(x, A, B, FUNC, ...) FUNC
 
 // The macro that the programmer uses
-#define ASSERT(...)                    ASSERT_X(,##__VA_ARGS__,\
-                                          ASSERT_2(__VA_ARGS__),\
-                                          ASSERT_1(__VA_ARGS__),\
-                                          ASSERT_0(__VA_ARGS__)\
-                                         )
+#define ASSERT(...)                                                            \
+  ASSERT_X(, ##__VA_ARGS__, ASSERT_2(__VA_ARGS__), ASSERT_1(__VA_ARGS__),      \
+           ASSERT_0(__VA_ARGS__))
 #endif
-
-// template for printing vector container
-template <typename T>
-std::ostream &operator<<(std::ostream &out, const std::vector<T> &v) {
-  int status;
-  char *demangled = abi::__cxa_demangle(typeid(T).name(), NULL, NULL, &status);
-  std::string demangled_str(demangled);
-  if (demangled_str != "double" && demangled_str != "int" &&
-      demangled_str != "float") {
-    out << "<" << demangled_str << ">";
-  }
-  out << "[";
-  bool first = true;
-  for (auto &&item : v) {
-    if (!first)
-      out << ", ";
-    else
-      first = false;
-    out << item;
-  }
-  out << "]";
-  if (status)
-    free(demangled);
-  return out;
-}
 
 ////////////////////////////////////////////////////////////////////////
 namespace sxs {
@@ -338,18 +313,27 @@ private:
 namespace sxs {
 
 // variadic print function
-template <typename T1> void print(T1 first) { std::cout << first; }
+template <typename T1> inline void print(T1 first) { std::cout << first; }
 
-template <typename T1, typename... T2> void print(T1 first, T2... rest) {
+// specialisation
+template <> inline void print(bool boolean) {
+  if (boolean)
+    std::cout << "true";
+  else
+    std::cout << "false";
+}
+
+template <typename T1, typename... T2> inline void print(T1 first, T2... rest) {
   std::cout << first;
   print(rest...);
 }
 
-template <typename T1> void print_spaced(T1 first) { print(first); }
+template <typename T1> inline void print_spaced(T1 first) { print(first); }
 /*
  *  Print a comma separated list of any items, with space in-between
  * */
-template <typename T1, typename... T2> void print_spaced(T1 first, T2... rest) {
+template <typename T1, typename... T2>
+inline void print_spaced(T1 first, T2... rest) {
   print(first, " ");
   print_spaced(rest...);
 }
@@ -357,14 +341,12 @@ template <typename T1, typename... T2> void print_spaced(T1 first, T2... rest) {
 /*
  *  Print an empty line
  * */
-template <typename... T> void println() {
-  std::cout << std::endl;
-}
+template <typename... T> inline void println() { std::cout << std::endl; }
 
 /*
  *  Print a comma separated list of any items
  * */
-template <typename... T> void println(T... rest) {
+template <typename... T> inline void println(T... rest) {
   print(rest...);
   std::cout << std::endl;
 }
@@ -372,7 +354,7 @@ template <typename... T> void println(T... rest) {
 /*
  *  Print a comma separated list of any items, with space in-between
  * */
-template <typename... T> void println_spaced(T... rest) {
+template <typename... T> inline void println_spaced(T... rest) {
   print_spaced(rest...);
   std::cout << std::endl;
 }
@@ -467,51 +449,43 @@ void timeit(const Lambda &lambda, const std::string title = "untitled") {
   print_message();
 }
 
-
 inline std::string get_home_dir() {
   /*
    * Return the current home directory
    */
   const char *homedir;
-  
+
   // Check $HOME environment variable first before retrieving user's homedir
   if ((homedir = getenv("HOME")) == NULL) {
-      homedir = getpwuid(getuid())->pw_dir;
+    homedir = getpwuid(getuid())->pw_dir;
   }
 
   return homedir;
 }
-
 
 /*
  * Auto string stream for format string and able to cast to string
  */
 class StringFormatter {
 public:
+  StringFormatter() {}
 
-  StringFormatter() {
-  }
+  StringFormatter(const StringFormatter &other) { ss << std::string(other); }
 
-  StringFormatter(const StringFormatter& other) {
-    ss << std::string(other);
-  }
-
-  template <typename T>
-  StringFormatter &operator<<(T thing) {
+  template <typename T> StringFormatter &operator<<(T thing) {
     ss << thing;
     return *this;
   }
 
-  operator std::string() const {
-    return ss.str();
-  }
+  operator std::string() const { return ss.str(); }
 
   bool print() const {
     sxs::println(operator std::string());
     return false;
   }
 
-  friend std::ostream &operator<<(std::ostream &_stream, StringFormatter const &thing) {
+  friend std::ostream &operator<<(std::ostream &_stream,
+                                  StringFormatter const &thing) {
     _stream << std::string(thing); // .to_string();
     return _stream;
   }
