@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+#include <iostream>
 
 // template for printing vector container
 template <typename T>
