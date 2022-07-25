@@ -50,4 +50,14 @@ std::ostream &operator<<(std::ostream &out,
   return out;
 }
 
+// template for printing pair
+template <typename T1, typename T2>
+std::ostream &operator<<(std::ostream &out,
+                         const typename std::pair<T1, T2> pair) {
+  out << "[";
+  out << pair.first << "," << pair.second;
+  out << "]";
+  return out;
+}
+
 #endif // GLOBALPLANNER_PRINT_UTILS_H
