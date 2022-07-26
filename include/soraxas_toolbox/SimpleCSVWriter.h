@@ -18,6 +18,7 @@ public:
     seperator_ = seperator;
     columnNum_ = numberOfColums;
     valueCount_ = 0;
+    writeImmediately_ = false;
   }
 
   CSVWriterStream(int numberOfColums) : CSVWriterStream() {
@@ -170,6 +171,7 @@ public:
     add(t);
     addNewRow(args...);
   }
+
   template <typename T> void addNewRow(T t) {
     add(t);
     bool write_newline = true;
