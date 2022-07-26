@@ -25,7 +25,11 @@ std::shared_ptr<T> construct_or_load(const std::string &cache_fname,
 
   std::shared_ptr<T> target_obj;
 
-  if (std::filesystem::exists(cache_fname)) {
+  if (
+#if SXS_CONSTRUCT_OR_LOAD_FORCE_NO_CACHE
+      false &&
+#endif
+      std::filesystem::exists(cache_fname)) {
     println("Using cache file ", cache_fname);
     std::ifstream ss(cache_fname);           // any stream can be used
     cereal::BinaryInputArchive iarchive(ss); // Create an input archive
