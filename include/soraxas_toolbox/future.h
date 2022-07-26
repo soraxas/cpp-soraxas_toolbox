@@ -5,26 +5,30 @@
 #include <filesystem>
 #include <variant>
 
-#else // < C++17
+#else  // < C++17
 
 #include "soraxas_toolbox/external/filesystem/filesystem.hpp"
 #include "soraxas_toolbox/external/variant.hpp"
 
-namespace std {
+namespace std
+{
 
-using mpark::get;
-using mpark::variant;
-using mpark::visit;
+    using mpark::get;
+    using mpark::variant;
+    using mpark::visit;
 
-using namespace ghc;
+    using namespace ghc;
 
-// for usage in pprint
-template <class...> using void_t = void;
+    // for usage in pprint
+    template <class...>
+    using void_t = void;
 
-template <class T> constexpr bool is_enum_v = is_enum<T>::value;
+    template <class T>
+    constexpr bool is_enum_v = is_enum<T>::value;
 
-template <class T> constexpr bool is_signed_v = is_signed<T>::value;
+    template <class T>
+    constexpr bool is_signed_v = is_signed<T>::value;
 
-} // namespace std
+}  // namespace std
 
 #endif
