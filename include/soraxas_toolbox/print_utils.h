@@ -63,4 +63,84 @@ std::ostream &operator<<(std::ostream &out, const typename std::pair<T1, T2> pai
     return out;
 }
 
+namespace sxs
+{
+    inline std::ostream &print_output_stream = std::cout;
+
+    inline void print_flush()
+    {
+        std::flush(print_output_stream);
+    }
+
+    // variadic print function
+    template <typename T1>
+    inline void print(T1 first)
+    {
+        print_output_stream << first;
+    }
+
+    // specialisation
+    template <>
+    inline void print(bool boolean)
+    {
+        if (boolean)
+            print("true");
+        else
+            print("false");
+    }
+
+    template <typename T1, typename... T2>
+    inline void print(T1 first, T2... rest)
+    {
+        print(first);
+        print(rest...);
+    }
+
+    template <typename T1>
+    inline void print_spaced(T1 first)
+    {
+        print(first);
+    }
+
+    /*
+     *  Print a comma separated list of any items, with space in-between
+     * */
+    template <typename T1, typename... T2>
+    inline void print_spaced(T1 first, T2... rest)
+    {
+        print(first, " ");
+        print_spaced(rest...);
+    }
+
+    /*
+     *  Print an empty line
+     * */
+    template <typename... T>
+    inline void println()
+    {
+        print_output_stream << std::endl;
+    }
+
+    /*
+     *  Print a comma separated list of any items
+     * */
+    template <typename... T>
+    inline void println(T... rest)
+    {
+        print(rest...);
+        println();
+    }
+
+    /*
+     *  Print a comma separated list of any items, with space in-between
+     * */
+    template <typename... T>
+    inline void println_spaced(T... rest)
+    {
+        print_spaced(rest...);
+        println();
+    }
+
+}  // namespace sxs
+
 #endif  // GLOBALPLANNER_PRINT_UTILS_H

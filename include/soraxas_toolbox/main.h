@@ -14,6 +14,7 @@
 #define SXS_USE_PPRINT
 
 // https://stackoverflow.com/questions/3767869/adding-message-to-assert
+#ifndef ASSERT
 #ifdef NDEBUG
 #define ASSERT(...) 0
 #else
@@ -35,6 +36,7 @@
 // The macro that the programmer uses
 #define ASSERT(...)                                                                                \
     ASSERT_X(, ##__VA_ARGS__, ASSERT_2(__VA_ARGS__), ASSERT_1(__VA_ARGS__), ASSERT_0(__VA_ARGS__))
+#endif
 #endif
 
 ////////////////////////////////////////////////////////////////////////
@@ -365,75 +367,6 @@ namespace sxs
 
 namespace sxs
 {
-
-    // variadic print function
-    template <typename T1>
-    inline void print(T1 first)
-    {
-        std::cout << first;
-    }
-
-    // specialisation
-    template <>
-    inline void print(bool boolean)
-    {
-        if (boolean)
-            std::cout << "true";
-        else
-            std::cout << "false";
-    }
-
-    template <typename T1, typename... T2>
-    inline void print(T1 first, T2... rest)
-    {
-        std::cout << first;
-        print(rest...);
-    }
-
-    template <typename T1>
-    inline void print_spaced(T1 first)
-    {
-        print(first);
-    }
-
-    /*
-     *  Print a comma separated list of any items, with space in-between
-     * */
-    template <typename T1, typename... T2>
-    inline void print_spaced(T1 first, T2... rest)
-    {
-        print(first, " ");
-        print_spaced(rest...);
-    }
-
-    /*
-     *  Print an empty line
-     * */
-    template <typename... T>
-    inline void println()
-    {
-        std::cout << std::endl;
-    }
-
-    /*
-     *  Print a comma separated list of any items
-     * */
-    template <typename... T>
-    inline void println(T... rest)
-    {
-        print(rest...);
-        std::cout << std::endl;
-    }
-
-    /*
-     *  Print a comma separated list of any items, with space in-between
-     * */
-    template <typename... T>
-    inline void println_spaced(T... rest)
-    {
-        print_spaced(rest...);
-        std::cout << std::endl;
-    }
 
     // template <class T> void doNotOptimizeAway(T &&datum) {
     //  asm volatile("" : "+r"(datum));
