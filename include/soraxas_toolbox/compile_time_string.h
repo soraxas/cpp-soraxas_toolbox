@@ -7,16 +7,36 @@
 
 // adopted from
 // https://stackoverflow.com/questions/15858141/conveniently-declaring-compile-time-strings-in-c/15863804#15863804
-
-template <char... letters>
-struct string_t
+namespace sxs
 {
-    static char const *c_str()
+    template <char... letters>
+    struct string_t
     {
-        static constexpr char string[] = {letters..., '\0'};
-        return string;
-    }
-};
+        static char const *c_str()
+        {
+            static constexpr char string[] = {letters..., '\0'};
+            return string;
+        }
+    };
+
+    template <typename... Args>
+    struct is_compile_time_string
+    {
+        enum
+        {
+            value = false
+        };
+    };
+
+    template <char... letters>
+    struct is_compile_time_string<sxs::string_t<letters...>>
+    {
+        enum
+        {
+            value = true
+        };
+    };
+}  // namespace sxs
 
 #define MACRO_GET_1(str, i) (sizeof(str) > (i) ? str[(i)] : 0)
 
@@ -33,7 +53,7 @@ struct string_t
         MACRO_GET_16(str, i + 48)
 
 // CT_STR means Compile-Time_String
-#define CT_STR(str) string_t<MACRO_GET_64(str, 0), 0>  // guard for longer strings
+#define CT_STR(str) sxs::string_t<MACRO_GET_64(str, 0), 0>  // guard for longer strings
 
 /**
  * Test with this
