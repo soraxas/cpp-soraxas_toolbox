@@ -1,16 +1,12 @@
 #pragma once
 
-#include <cmath>     // for std::sqrt
-#include <iterator>  // needed for std::ostram_iterator
-#include <pwd.h>     // for getting home dir
-#include <string>
-#include <unistd.h>  // for getting home dir
-
-// #include "soraxas_toolbox/future.h"
-
 #include "assert.h"
 #include "forward_declare.h"
 #include "print_utils.h"
+
+#include <cmath>     // for std::sqrt
+#include <iterator>  // needed for std::ostram_iterator
+#include <string>
 
 #define SXS_USE_PPRINT
 
@@ -449,23 +445,6 @@ namespace sxs
             }
         }
         print_message();
-    }
-
-    inline std::string get_home_dir()
-    {
-        /*
-         * Return the current home directory
-         */
-        const char *homedir;
-
-        // Check $HOME environment variable first before retrieving user's
-        // homedir
-        if ((homedir = getenv("HOME")) == NULL)
-        {
-            homedir = getpwuid(getuid())->pw_dir;
-        }
-
-        return homedir;
     }
 
     /*

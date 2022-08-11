@@ -11,6 +11,31 @@
 #include <string>
 #include <vector>
 
+// template for printing array
+template <typename T, size_t N>
+std::ostream &operator<<(std::ostream &out, const typename std::array<T, N> arr)
+{
+    out << "[";
+    for (int i = 0; i < N; ++i)
+    {
+        out << arr.at(i);
+        if (i < N - 1)
+            out << ",";
+    }
+    out << "]";
+    return out;
+}
+
+// template for printing pair
+template <typename T1, typename T2>
+std::ostream &operator<<(std::ostream &out, const typename std::pair<T1, T2> pair)
+{
+    out << "[";
+    out << pair.first << "," << pair.second;
+    out << "]";
+    return out;
+}
+
 // template for printing vector container
 template <typename T>
 std::ostream &operator<<(std::ostream &out, const std::vector<T> &v)
@@ -35,31 +60,6 @@ std::ostream &operator<<(std::ostream &out, const std::vector<T> &v)
     out << "]";
     if (status)
         free(demangled);
-    return out;
-}
-
-// template for printing array
-template <typename T, size_t N>
-std::ostream &operator<<(std::ostream &out, const typename std::array<T, N> arr)
-{
-    out << "[";
-    for (int i = 0; i < N; ++i)
-    {
-        out << arr.at(i);
-        if (i < N - 1)
-            out << ",";
-    }
-    out << "]";
-    return out;
-}
-
-// template for printing pair
-template <typename T1, typename T2>
-std::ostream &operator<<(std::ostream &out, const typename std::pair<T1, T2> pair)
-{
-    out << "[";
-    out << pair.first << "," << pair.second;
-    out << "]";
     return out;
 }
 
