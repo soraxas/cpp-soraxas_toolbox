@@ -38,6 +38,8 @@ namespace sxs
     };
 }  // namespace sxs
 
+#define DEFER(...) __VA_ARGS__ EMPTY()
+
 #define MACRO_GET_1(str, i) (sizeof(str) > (i) ? str[(i)] : 0)
 
 #define MACRO_GET_4(str, i)                                                                        \
@@ -54,6 +56,10 @@ namespace sxs
 
 // CT_STR means Compile-Time_String
 #define CT_STR(str) sxs::string_t<MACRO_GET_64(str, 0), 0>  // guard for longer strings
+
+#define CT_RSTR1(str1) CT_STR(#str1)
+#define CT_RSTR2(str1, str2) CT_STR(#str1), CT_STR(#str2)
+#define CT_RSTR3(str1, str2, str3) CT_STR(#str1), CT_STR(#str2), CT_STR(#str3)
 
 /**
  * Test with this
