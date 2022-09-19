@@ -1,17 +1,21 @@
 #pragma once
 
+#include "main.h"
+
 #include "external/ordered-map/ordered_map.h"
 
 #include <iostream>
 
 namespace sxs
 {
-    class Timer
+    class TimeStamper : public Timer
     {
+        using Timer::clock_;
+
     public:
-        Timer(const std::string &name = "", bool print_starter = false, bool auto_print = true)
-          : beg_(clock_::now())
-          , name(name)
+        TimeStamper(const std::string &name = "", bool print_starter = false,
+                    bool auto_print = true)
+          : name(name)
           , m_autoprint(auto_print)
           , m_counts(0)
           , m_finished(false)
@@ -21,7 +25,7 @@ namespace sxs
                 std::cout << "[" << name << "] (computing...)" << std::flush;
         }
 
-        ~Timer()
+        ~TimeStamper()
         {
             finish();
         }
@@ -43,16 +47,6 @@ namespace sxs
             }
         }
 
-        void reset()
-        {
-            beg_ = clock_::now();
-        }
-
-        double elapsed() const
-        {
-            return std::chrono::duration_cast<second_>(clock_::now() - beg_).count();
-        }
-
         void stamp(std::string &&stamp_string)
         {
             if (!_last_stamped_string.empty())
@@ -60,8 +54,7 @@ namespace sxs
                 //      std::stringstream ss;
                 //      ss << _last_stamped_string << " -> " << stamp_string;
                 stamped[{_last_stamped_string, stamp_string}].push_back(
-                    std::chrono::duration_cast<second_>(clock_::now() - _last_stamped_clock).count()
-                );
+                    timepoint_diff_to_secs(clock_::now() - _last_stamped_clock));
             }
             _last_stamped_clock = clock_::now();
             _last_stamped_string = std::move(stamp_string);
@@ -87,14 +80,12 @@ namespace sxs
             {
                 double max = item.second[0];
                 double min = item.second[0];
-                std::for_each(
-                    item.second.begin(), item.second.end(),
-                    [&max, &min](double val)
-                    {
-                        max = std::max(val, max);
-                        min = std::min(val, min);
-                    }
-                );
+                std::for_each(item.second.begin(), item.second.end(),
+                              [&max, &min](double val)
+                              {
+                                  max = std::max(val, max);
+                                  min = std::min(val, min);
+                              });
                 double sum = sxs::compute_sum(item.second);
                 std::cout << std::left                                         //
                           << std::setw(string_1_max_len) << item.first.first   // from
@@ -127,16 +118,16 @@ namespace sxs
             return ss.str();
         }
 
-        friend std::ostream &operator<<(std::ostream &_stream, const Timer &t)
+        friend std::ostream &operator<<(std::ostream &_stream, const TimeStamper &t)
         {
             _stream << std::string(t);  // .to_string();
             return _stream;
         }
 
         template <class... T>
-        static Timer auto_print(T... args)
+        static TimeStamper auto_print(T... args)
         {
-            Timer timer = Timer(args...);
+            TimeStamper timer = TimeStamper(args...);
             timer.set_autoprint();
             return timer;
         }
@@ -153,8 +144,6 @@ namespace sxs
 
     private:
         bool m_finished;
-        typedef std::chrono::high_resolution_clock clock_;
-        typedef std::chrono::duration<double, std::ratio<1>> second_;
 
         struct pair_hash
         {
@@ -168,8 +157,7 @@ namespace sxs
         tsl::ordered_map<std::pair<std::string, std::string>, std::vector<double>, pair_hash>
             stamped;
         std::string _last_stamped_string;
-        std::chrono::time_point<clock_> _last_stamped_clock;
-        std::chrono::time_point<clock_> beg_;
+        clock_::time_point _last_stamped_clock;
         std::string name;
         bool m_autoprint;
         int m_counts;

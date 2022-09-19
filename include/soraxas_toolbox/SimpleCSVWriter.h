@@ -11,6 +11,8 @@
 #include <sstream>
 #include <typeinfo>
 
+// #include "timer.h"
+
 class CSVWriterStream
 {
 public:
@@ -172,17 +174,17 @@ public:
         columnNum_ = -1;
     }
 
-    void initialise_timer()
-    {
-        timer = std::make_unique<sxs::Timer>();
-    }
+    // void initialise_timer()
+    // {
+    //     timer = std::make_unique<sxs::Timer>();
+    // }
 
-    double get_elapsed_time()
-    {
-        if (!timer)
-            initialise_timer();
-        return timer->elapsed();
-    }
+    // double get_elapsed_time()
+    // {
+    //     if (!timer)
+    //         initialise_timer();
+    //     return timer->elapsed();
+    // }
 
 protected:
     bool firstRow_;
@@ -193,8 +195,8 @@ protected:
     int valueCount_;
     std::stringstream ss_;
 
-public:
-    std::unique_ptr<sxs::Timer> timer;
+// public:
+//     std::unique_ptr<sxs::Timer> timer;
 };
 
 class CSVInstantWriter : CSVWriterStream
@@ -242,8 +244,8 @@ private:
     void enableAutoNewRow(int numberOfColumns) = delete;
     void disableAutoNewRow() = delete;
 
-public:
-    std::unique_ptr<sxs::Timer> timer;
+// public:
+//     std::unique_ptr<sxs::Timer> timer;
 };
 
 #endif  // CSVWRITER_H

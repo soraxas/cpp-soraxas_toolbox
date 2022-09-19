@@ -127,7 +127,7 @@ namespace sxs
                 return container;
             }
 
-            bool has_key(const std::string &key)
+            inline bool has_key(const std::string &key)
             {
                 auto &storage = _get_static_storage();
                 return storage.find(key) != storage.end();

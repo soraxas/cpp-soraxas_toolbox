@@ -8,7 +8,7 @@
 #include <iterator>  // needed for std::ostram_iterator
 #include <string>
 
-#define SXS_USE_PPRINT
+//#define SXS_USE_PPRINT
 
 ////////////////////////////////////////////////////////////////////////
 namespace sxs
@@ -62,8 +62,8 @@ namespace sxs
 #include <vector>
 
 template <typename T>
-inline long long int
-indexOf(const std::vector<T> &vector, const T &data, bool throw_exception = false)
+inline long long int indexOf(const std::vector<T> &vector, const T &data,
+                             bool throw_exception = false)
 {
     auto find_result = std::find(vector.begin(), vector.end(), data);
     if (find_result != vector.end())
@@ -94,9 +94,8 @@ namespace sxs
         double mean = sum / nums.size();
 
         std::vector<double> diff(nums.size());
-        std::transform(
-            nums.begin(), nums.end(), diff.begin(), [mean](double x) { return x - mean; }
-        );
+        std::transform(nums.begin(), nums.end(), diff.begin(),
+                       [mean](double x) { return x - mean; });
         double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
         double stdev = std::sqrt(sq_sum / nums.size());
         return {mean, stdev};
@@ -104,8 +103,8 @@ namespace sxs
 
     ////////////////////////////////////////////////////////////
 
-    inline std::pair<double, std::string>
-    _get_time_factor_and_unit(double elapsed, bool fix_width = false)
+    inline std::pair<double, std::string> _get_time_factor_and_unit(double elapsed,
+                                                                    bool fix_width = false)
     {
         double factor;
         std::string unit;
@@ -161,7 +160,6 @@ namespace sxs
 
 namespace sxs
 {
-
     // template <class T> void doNotOptimizeAway(T &&datum) {
     //  asm volatile("" : "+r"(datum));
     //}
@@ -311,6 +309,44 @@ namespace sxs
 
     private:
         std::stringstream ss;
+    };
+
+    class Timer
+    {
+    protected:
+        typedef std::chrono::high_resolution_clock clock_;
+        typedef std::chrono::duration<double, std::ratio<1>> second_;
+        clock_::time_point beg_;
+
+    public:
+        Timer() : beg_(clock_::now())
+        {
+        }
+
+        virtual void reset()
+        {
+            beg_ = get_timepoint();
+        }
+
+        virtual double elapsed() const
+        {
+            return timepoint_diff_to_secs(clock_::now() - beg_);
+        }
+
+        inline static clock_::time_point get_timepoint()
+        {
+            return clock_::now();
+        }
+
+        static double timepoint_diff_to_secs(const clock_::duration &duration)
+        {
+            return std::chrono::duration_cast<second_>(duration).count();
+        }
+
+        static double timepoint_diff_to_secs(const clock_::time_point &tp)
+        {
+            return timepoint_diff_to_secs(get_timepoint() - tp);
+        }
     };
 
 }  // end of namespace sxs
