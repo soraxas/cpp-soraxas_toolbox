@@ -195,8 +195,8 @@ protected:
     int valueCount_;
     std::stringstream ss_;
 
-// public:
-//     std::unique_ptr<sxs::Timer> timer;
+    // public:
+    //     std::unique_ptr<sxs::Timer> timer;
 };
 
 class CSVInstantWriter : CSVWriterStream
@@ -244,8 +244,8 @@ private:
     void enableAutoNewRow(int numberOfColumns) = delete;
     void disableAutoNewRow() = delete;
 
-// public:
-//     std::unique_ptr<sxs::Timer> timer;
+    // public:
+    //     std::unique_ptr<sxs::Timer> timer;
 };
 
 #endif  // CSVWRITER_H

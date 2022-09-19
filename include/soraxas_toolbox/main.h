@@ -62,8 +62,8 @@ namespace sxs
 #include <vector>
 
 template <typename T>
-inline long long int indexOf(const std::vector<T> &vector, const T &data,
-                             bool throw_exception = false)
+inline long long int
+indexOf(const std::vector<T> &vector, const T &data, bool throw_exception = false)
 {
     auto find_result = std::find(vector.begin(), vector.end(), data);
     if (find_result != vector.end())
@@ -94,8 +94,9 @@ namespace sxs
         double mean = sum / nums.size();
 
         std::vector<double> diff(nums.size());
-        std::transform(nums.begin(), nums.end(), diff.begin(),
-                       [mean](double x) { return x - mean; });
+        std::transform(
+            nums.begin(), nums.end(), diff.begin(), [mean](double x) { return x - mean; }
+        );
         double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
         double stdev = std::sqrt(sq_sum / nums.size());
         return {mean, stdev};
@@ -103,8 +104,8 @@ namespace sxs
 
     ////////////////////////////////////////////////////////////
 
-    inline std::pair<double, std::string> _get_time_factor_and_unit(double elapsed,
-                                                                    bool fix_width = false)
+    inline std::pair<double, std::string>
+    _get_time_factor_and_unit(double elapsed, bool fix_width = false)
     {
         double factor;
         std::string unit;

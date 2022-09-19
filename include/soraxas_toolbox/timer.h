@@ -13,8 +13,9 @@ namespace sxs
         using Timer::clock_;
 
     public:
-        TimeStamper(const std::string &name = "", bool print_starter = false,
-                    bool auto_print = true)
+        TimeStamper(
+            const std::string &name = "", bool print_starter = false, bool auto_print = true
+        )
           : name(name)
           , m_autoprint(auto_print)
           , m_counts(0)
@@ -54,7 +55,8 @@ namespace sxs
                 //      std::stringstream ss;
                 //      ss << _last_stamped_string << " -> " << stamp_string;
                 stamped[{_last_stamped_string, stamp_string}].push_back(
-                    timepoint_diff_to_secs(clock_::now() - _last_stamped_clock));
+                    timepoint_diff_to_secs(clock_::now() - _last_stamped_clock)
+                );
             }
             _last_stamped_clock = clock_::now();
             _last_stamped_string = std::move(stamp_string);
@@ -80,12 +82,14 @@ namespace sxs
             {
                 double max = item.second[0];
                 double min = item.second[0];
-                std::for_each(item.second.begin(), item.second.end(),
-                              [&max, &min](double val)
-                              {
-                                  max = std::max(val, max);
-                                  min = std::min(val, min);
-                              });
+                std::for_each(
+                    item.second.begin(), item.second.end(),
+                    [&max, &min](double val)
+                    {
+                        max = std::max(val, max);
+                        min = std::min(val, min);
+                    }
+                );
                 double sum = sxs::compute_sum(item.second);
                 std::cout << std::left                                         //
                           << std::setw(string_1_max_len) << item.first.first   // from

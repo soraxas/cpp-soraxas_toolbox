@@ -6,9 +6,9 @@
 #define SXS_STATS_H
 
 #include "soraxas_toolbox/external/csv.hpp"
+#include "soraxas_toolbox/future.h"
 #include "soraxas_toolbox/main.h"
 #include "soraxas_toolbox/timer.h"
-#include "soraxas_toolbox/future.h"
 
 #ifdef SXS_USE_PPRINT
 #include "soraxas_toolbox/external/pprint.hpp"
