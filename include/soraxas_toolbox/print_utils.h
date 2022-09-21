@@ -65,18 +65,22 @@ std::ostream &operator<<(std::ostream &out, const std::vector<T> &v)
 
 namespace sxs
 {
-    inline std::ostream &print_output_stream = std::cout;
+    inline static std::ostream &get_print_output_stream()
+    {
+        static std::ostream &ostream{std::cout};
+        return ostream;
+    }
 
     inline void print_flush()
     {
-        std::flush(print_output_stream);
+        std::flush(get_print_output_stream());
     }
 
     // variadic print function
     template <typename T1>
     inline void print(T1 first)
     {
-        print_output_stream << first;
+        get_print_output_stream() << first;
     }
 
     // specialisation
@@ -118,7 +122,7 @@ namespace sxs
     template <typename... T>
     inline void println()
     {
-        print_output_stream << std::endl;
+        get_print_output_stream() << std::endl;
     }
 
     /*

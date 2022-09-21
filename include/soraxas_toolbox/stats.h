@@ -126,7 +126,7 @@ namespace sxs
             if (!data.empty())
             {
                 std::cout << "========== Uncleared Stats ==========" << std::endl;
-                std::cout << std::string(*this);
+                std::cout << std::string(*this) << std::endl;
                 std::cout << "=====================================" << std::endl;
             }
         }
@@ -155,7 +155,7 @@ namespace sxs
                     cols.push_back(item.first);
                 }
                 writer_stream_first_row_written = true;
-                csv_output_file->write_row(cols);
+                (*csv_output_file) << cols;
                 cols.clear();
             }
             // data row
@@ -168,7 +168,7 @@ namespace sxs
                 );
             }
             SXS_STATS_MUTEX_UNLOCK;
-            csv_output_file->write_row(cols);
+            (*csv_output_file) << cols;
         }
 
         std::unique_ptr<sxs::Timer> m_timer;
@@ -236,12 +236,12 @@ namespace sxs
             return _stream;
         }
 
-        const std::map<std::string, std::vector<double>> &get() const
+        const tsl::ordered_map<std::string, std::vector<double>> &get() const
         {
             return data;
         }
 
-        std::map<std::string, std::vector<double>> data;
+        tsl::ordered_map<std::string, std::vector<double>> data;
     };
 
 }  // namespace sxs
