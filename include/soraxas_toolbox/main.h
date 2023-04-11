@@ -3,6 +3,8 @@
 #include "assert.h"
 #include "forward_declare.h"
 #include "print_utils.h"
+#include "string.h"
+#include "vector_math.h"
 
 #include <cmath>     // for std::sqrt
 #include <iterator>  // needed for std::ostram_iterator
@@ -78,61 +80,10 @@ indexOf(const std::vector<T> &vector, const T &data, bool throw_exception = fals
 #include <chrono>
 #include <iomanip>
 #include <iostream>
-#include <numeric>
 #include <sstream>
 
 namespace sxs
 {
-
-    namespace string
-    {
-        /**
-         * Split a given string into vector of strings by delimiter
-         * @param s
-         * @param delimiter
-         * @return
-         */
-        inline std::vector<std::string> split(const std::string &s, const std::string &delimiter)
-        {
-            size_t pos_start = 0, pos_end, delim_len = delimiter.length();
-            std::string token;
-            std::vector<std::string> res;
-
-            while ((pos_end = s.find(delimiter, pos_start)) != std::string::npos)
-            {
-                token = s.substr(pos_start, pos_end - pos_start);
-                pos_start = pos_end + delim_len;
-                res.push_back(token);
-            }
-
-            res.push_back(s.substr(pos_start));
-            return res;
-        }
-
-        inline bool startsWith(const std::string &s, const std::string &token)
-        {
-            return s.rfind(token, 0) == 0;
-        }
-    }  // namespace string
-
-    inline double compute_sum(std::vector<double> nums)
-    {
-        return std::accumulate(nums.begin(), nums.end(), 0.);
-    }
-
-    inline std::pair<double, double> compute_mean_and_stdev(std::vector<double> nums)
-    {
-        double sum = compute_sum(nums);
-        double mean = sum / nums.size();
-
-        std::vector<double> diff(nums.size());
-        std::transform(
-            nums.begin(), nums.end(), diff.begin(), [mean](double x) { return x - mean; }
-        );
-        double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
-        double stdev = std::sqrt(sq_sum / nums.size());
-        return {mean, stdev};
-    }
 
     ////////////////////////////////////////////////////////////
 
