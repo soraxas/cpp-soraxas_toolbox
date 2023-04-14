@@ -1,5 +1,6 @@
 #pragma once
 
+#include "forward_declare.h"
 #include "string.h"
 
 #include <array>
@@ -7,6 +8,7 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <typeindex>
 #include <vector>
 
 namespace sxs
@@ -14,7 +16,7 @@ namespace sxs
     namespace string
     {
 
-        std::string extract_container_name(const std::string &full_container_name)
+        inline std::string extract_container_name(const std::string &full_container_name)
         {
             int first_open_bracket = full_container_name.find('<');
             if (first_open_bracket == std::string::npos)
@@ -22,7 +24,7 @@ namespace sxs
             return full_container_name.substr(0, first_open_bracket);
         }
 
-        std::string extract_contained_value(const std::string &full_container_name)
+        inline std::string extract_contained_value(const std::string &full_container_name)
         {
             int first_open_bracket = full_container_name.find('<');
             int last_close_bracket = full_container_name.rfind('>');
@@ -39,14 +41,24 @@ namespace sxs
             );
         }
 
-        std::string get_type_name(const std::type_info &info)
+        inline std::string __demangle_name(const char *name)
         {
             int status;
-            char *demangled = abi::__cxa_demangle(info.name(), NULL, NULL, &status);
+            char *demangled = abi::__cxa_demangle(name, NULL, NULL, &status);
             std::string demangled_str{demangled};
             if (status)
                 free(demangled);
             return demangled_str;
+        }
+
+        inline std::string get_type_name(const std::type_index &info)
+        {
+            return __demangle_name(info.name());
+        }
+
+        inline std::string get_type_name(const std::type_info &info)
+        {
+            return __demangle_name(info.name());
         }
 
         template <typename T>
@@ -134,13 +146,19 @@ namespace sxs
         {
             return simplify_type_name(get_type_name(info));
         }
+
     }  // namespace string
 };     // namespace sxs
 
 // template for printing type info
 inline std::ostream &operator<<(std::ostream &out, const std::type_info &info)
 {
-    return out << sxs::string::get_type_name(info);
+    return out << sxs::string::simplify_type_name(sxs::string::get_type_name(info));
+}
+
+inline std::ostream &operator<<(std::ostream &out, const std::type_index &type_index)
+{
+    return out << sxs::string::simplify_type_name(sxs::string::get_type_name(type_index));
 }
 
 ///////////////////////////////////
@@ -182,7 +200,13 @@ std::ostream &operator<<(std::ostream &out, const std::tuple<Args...> &t)
 // disable this template for std::string
 template <
     class IterableContainer, class Begin = decltype(std::begin(std::declval<IterableContainer>())),
-    typename = typename std::enable_if<!std::is_same<IterableContainer, std::string>::value>::type>
+    typename
+#if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
+    ,
+    typename
+#endif
+    >
+
 inline std::ostream &operator<<(std::ostream &stream, const IterableContainer &vect)
 {
     using namespace sxs::string;
@@ -212,22 +236,23 @@ inline std::ostream &operator<<(std::ostream &stream, const IterableContainer &v
 
 namespace sxs
 {
-    inline static std::ostream &get_print_output_stream()
+    // return a pointer to a referenced ostream
+    inline static std::ostream *&get_print_output_stream()
     {
-        static std::ostream &ostream{std::cout};
+        static std::ostream *ostream{&std::cout};
         return ostream;
     }
 
     inline void print_flush()
     {
-        std::flush(get_print_output_stream());
+        std::flush(*get_print_output_stream());
     }
 
     // variadic print function
     template <typename T1>
     inline void print(const T1 &first)
     {
-        get_print_output_stream() << first;
+        *get_print_output_stream() << first;
     }
 
     // specialisation
@@ -269,7 +294,7 @@ namespace sxs
     template <typename... T>
     inline void println()
     {
-        get_print_output_stream() << std::endl;
+        *get_print_output_stream() << std::endl;
     }
 
     /*
@@ -293,3 +318,128 @@ namespace sxs
     }
 
 }  // namespace sxs
+
+#ifdef SXS_RUN_TESTS
+/*
+ * -------------------------------------------
+ * Test cases and general usage for this file:
+ * -------------------------------------------
+ */
+
+TEST_CASE("[sxs] Test printing to ostream")
+{
+    using namespace sxs;
+
+    // assign print output stream to our ostream
+    std::ostringstream oss;
+
+    const auto _original_ostream = sxs::get_print_output_stream();
+    sxs::get_print_output_stream() = &oss;
+
+    SUBCASE("[sxs] no newline")
+    {
+        print("Hello world");
+        CHECK(oss.str() == "Hello world");
+    }
+
+    SUBCASE("[sxs] newline")
+    {
+        println("Hello world");
+        CHECK(oss.str() == "Hello world\n");
+    }
+
+    SUBCASE("[sxs] spaced print")
+    {
+        println_spaced("Hello world", 3, "/", 10);
+        CHECK(oss.str() == "Hello world 3 / 10\n");
+    }
+
+    SUBCASE("[sxs] semantic printing")
+    {
+        SUBCASE("")
+        {
+            print(true);
+            CHECK(oss.str() == "true");
+        }
+        SUBCASE("")
+        {
+            print(false);
+            CHECK(oss.str() == "false");
+        }
+        SUBCASE("")
+        {
+            print(1.5);
+            CHECK(oss.str() == "1.5");
+        }
+        SUBCASE("")
+        {
+            print(1.0);
+            CHECK(oss.str() == "1");
+        }
+        SUBCASE("")
+        {
+            print(5.91856f);
+            CHECK(oss.str() == "5.91856");
+        }
+    }
+
+    SUBCASE("[sxs] container printing")
+    {
+        SUBCASE("trivial container")
+        {
+            std::vector<int> vec = {1, 6, 8};
+            print(vec);
+            CHECK(oss.str() == "[1, 6, 8]");
+        }
+        SUBCASE("trivial container")
+        {
+            std::vector<double> vec = {1.5, 6.9, 8.85};
+            print(vec);
+            CHECK(oss.str() == "[1.5, 6.9, 8.85]");
+        }
+        SUBCASE("non-trivial container")
+        {
+            std::vector<std::pair<double, int>> vec = {{1.5, 8}, {6.9, 98}, {8.85, -84}};
+            print(vec);
+            CHECK(oss.str() == "vec<p<double,int>>[(1.5,8), (6.9,98), (8.85,-84)]");
+        }
+    }
+
+    SUBCASE("[sxs] print type")
+    {
+        SUBCASE("")
+        {
+            print(typeid(int));
+            CHECK(oss.str() == "int");
+        }
+        SUBCASE("")
+        {
+            print(typeid(double));
+            CHECK(oss.str() == "double");
+        }
+        SUBCASE("")
+        {
+            print(typeid(float));
+            CHECK(oss.str() == "float");
+        }
+        SUBCASE("")
+        {
+            print(typeid(bool));
+            CHECK(oss.str() == "bool");
+        }
+        SUBCASE("")
+        {
+            print(typeid(std::pair<int, double>));
+            CHECK(oss.str() == "p<int,double>");
+        }
+        SUBCASE("")
+        {
+            print(typeid(std::string));
+            CHECK(oss.str() == "str");
+        }
+    }
+
+    sxs::get_print_output_stream() = _original_ostream;
+}
+
+#endif  // SXS_RUN_TESTS
