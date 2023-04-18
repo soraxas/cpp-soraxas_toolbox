@@ -7,7 +7,8 @@
 #include "doctest.h"
 
 // #include <soraxas_toolbox/compile_time_dict.h>
+#include <soraxas_toolbox/metaprogramming.h>
 #include <soraxas_toolbox/print_utils.h>
-
-// vector maths
+#include <soraxas_toolbox/stats/timer.h>
+#include <soraxas_toolbox/stats/token.h>
 #include <soraxas_toolbox/vector_math.h>

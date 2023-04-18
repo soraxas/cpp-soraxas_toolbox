@@ -120,26 +120,33 @@ namespace sxs
 #define _FIX_WIDTH_DECIMAL(precision) /* +1 is for the decimal point */                            \
     std::setprecision(precision) << std::left << std::setw(precision + 1)
 
-    inline std::string format_time2readable(double elapsed, int precision = 3)
+    inline std::string format_time2readable(const double elapsed, const int precision = 3)
     {
-        auto factor_and_unit = _get_time_factor_and_unit(elapsed, true);
+        const auto factor_and_unit = _get_time_factor_and_unit(elapsed, true);
         std::stringstream ss;
         ss << _FIX_WIDTH_DECIMAL(precision) << (elapsed * factor_and_unit.first)
            << factor_and_unit.second;
         return ss.str();
     }
 
-    inline std::string format_time2readable(std::vector<double> all_elapsed, int precision = 3)
+    inline std::string
+    format_time2readable(const std::pair<double, double> &mean_stdev, const int precision = 3)
     {
-        auto mean_stdev = compute_mean_and_stdev(all_elapsed);
         // use mean to get factor and units
-        auto factor_and_unit = _get_time_factor_and_unit(mean_stdev.first, true);
+        const auto factor_and_unit = _get_time_factor_and_unit(mean_stdev.first, true);
         std::stringstream ss;
         ss << _FIX_WIDTH_DECIMAL(precision) << (mean_stdev.first * factor_and_unit.first) << "±"
            << _FIX_WIDTH_DECIMAL(precision) << (mean_stdev.second * factor_and_unit.first)
            << factor_and_unit.second;
         return ss.str();
     }
+
+    inline std::string
+    format_time2readable(const std::vector<double> &all_elapsed, const int precision = 3)
+    {
+        return format_time2readable(compute_mean_and_stdev(all_elapsed), precision);
+    }
+
 }  // namespace sxs
 
 namespace sxs

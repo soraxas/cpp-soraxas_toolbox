@@ -45,7 +45,7 @@ set(DOCTEST_INCLUDE_DIR ${source_dir}/doctest CACHE INTERNAL "Path to include fo
 # Make test executable
 # add_executable(tests main.cpp)
 add_executable(tests tests_runner.cpp)
-target_compile_features(tests PRIVATE cxx_std_14)
+target_compile_features(tests PRIVATE cxx_std_17)
 target_include_directories(tests PUBLIC ${DOCTEST_INCLUDE_DIR})
 
 # target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)

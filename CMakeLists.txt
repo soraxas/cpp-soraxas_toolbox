@@ -21,3 +21,10 @@ INSTALL (
     DIRECTORY ${CMAKE_SOURCE_DIR}/include/
     DESTINATION include
     FILES_MATCHING PATTERN "*.h*")
+
+
+option(BUILD_SXS_WITH_TESTS "run test" ON)
+
+if(BUILD_SXS_WITH_TESTS)
+  add_subdirectory(tests)
+endif()
