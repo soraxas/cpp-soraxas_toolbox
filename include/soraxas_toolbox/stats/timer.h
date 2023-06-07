@@ -3,8 +3,8 @@
 #include "timer_interface.h"
 #include "timing.h"
 
+#include "../clock.h"
 #include "../external/ordered-map/ordered_map.h"
-#include "../main.h"
 
 #include <iostream>
 
@@ -82,7 +82,7 @@ namespace sxs
     }
 
     template <typename Token>
-    void print_stamped_stats(
+    void print_compiled_stats(
         const TimeStampCollection<Token> &stamped,
         const std::function<std::string(Token)> &to_string_functor = 0
     )
@@ -142,7 +142,7 @@ namespace sxs
     }
 
     template <typename Token, typename F>
-    inline void print_stamped_stats(const TimeStampCollection<Token> &stamped, F to_string_functor)
+    inline void print_compiled_stats(const TimeStampCollection<Token> &stamped, F to_string_functor)
     {
         // to_string_functor can be anything callable
         static_assert(
@@ -151,7 +151,7 @@ namespace sxs
 
         std::function<std::string(Token)> functor = to_string_functor;
 
-        print_stamped_stats(stamped, functor);
+        print_compiled_stats(stamped, functor);
     }
 
     template <typename Token, typename F>
@@ -181,14 +181,43 @@ namespace sxs
             item.stdev() =
                 sxs::compute_stdev(stamped.second.mean(), aggregated_stamped_tmp[stamped.first]);
         }
-        sxs::print_stamped_stats(aggregated_stamped, to_string_functor);
+        print_compiled_stats(aggregated_stamped, to_string_functor);
     }
 
+    /*
+     * A helper function that auto add to-string function
+     */
     template <typename Token>
     void print_aggregated_stamped_stats(const std::vector<TimeStampCollection<Token>> &all_stamped)
     {
         const std::function<std::string(Token)> to_string_functor = 0;
         print_aggregated_stamped_stats(all_stamped, to_string_functor);
+    }
+
+    /*
+     * A helper function that auto compile results
+     */
+    template <
+        typename CompilableTimeStamper,
+        typename Token =
+            typename std::tuple_element<0, typename CompilableTimeStamper::stat_t>::type,
+        typename... Args>
+    void print_aggregated_stamped_stats(
+        const std::vector<CompilableTimeStamper> &time_stameprs, Args... args
+    )
+    {
+        std::vector<TimeStampCollection<Token>> all_stamped;
+        all_stamped.reserve(time_stameprs.size());
+        bool valid = true;
+        for (auto &&time_stamper : time_stameprs)
+        {
+            if (valid)
+                // once something reported invalid, stop checking to avoid being over-flooded with
+                // messages
+                valid &= time_stamper.check_validity();
+            all_stamped.push_back(sxs::compile_result(time_stamper));
+        }
+        print_aggregated_stamped_stats(all_stamped, std::forward<Args>(args)...);
     }
 }  // namespace sxs
 
@@ -222,6 +251,17 @@ namespace sxs
             finish();
         }
 
+        size_t count()
+        {
+            return stamped.size();
+        }
+
+        void reset()
+        {
+            stamped.clear();
+            _last_stamped_token = Token{};
+        }
+
         void finish()
         {
             if (m_finished)
@@ -241,7 +281,7 @@ namespace sxs
 
         void print_stamped_stats()
         {
-            compile_result(*this);
+            print_compiled_stats(compile_result(*this));
         }
 
         operator std::string() const
@@ -286,11 +326,13 @@ namespace sxs
 
         class iterator
         {
-            const std::vector<std::tuple<Token, Token, double>> &stamped_ref_;
+            const std::vector<TimeStamperStatIteratorReturnType<Token>> &stamped_ref_;
             long num;
 
         public:
-            explicit iterator(const std::vector<std::tuple<Token, Token, double>> &ref, long _num)
+            explicit iterator(
+                const std::vector<TimeStamperStatIteratorReturnType<Token>> &ref, long _num
+            )
               : stamped_ref_(ref), num(_num)
             {
             }
@@ -324,18 +366,23 @@ namespace sxs
             }
         };
 
-        iterator begin()
+        iterator begin() const
         {
             return iterator(stamped, 0);
         }
 
-        iterator end()
+        iterator end() const
         {
             return iterator(stamped, stamped.size());
         }
 
+        bool check_validity() const
+        {
+            return true;
+        }
+
     protected:
-        std::vector<std::tuple<Token, Token, double>> stamped;
+        std::vector<TimeStamperStatIteratorReturnType<Token>> stamped;
 
         Token _last_stamped_token;
         clock_::time_point _last_stamped_clock;
@@ -408,7 +455,7 @@ namespace __sxs_timer
 
         println(timer);
 
-        print_stamped_stats(compile_result(timer));
+        print_compiled_stats(compile_result(timer));
     }
 
     SXS_DEFINE_ENUM_AND_TRAITS(
@@ -430,7 +477,7 @@ namespace __sxs_timer
 
         println(timer);
 
-        print_stamped_stats(compile_result(timer));
+        print_compiled_stats(compile_result(timer));
     }
 
 }  // namespace __sxs_timer
