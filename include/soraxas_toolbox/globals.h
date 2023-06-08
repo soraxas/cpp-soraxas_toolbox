@@ -10,10 +10,13 @@
 
 #include "external/pprint.hpp"
 
+#include <iostream>
 #include <map>
+#include <mutex>
 #include <thread>
 
 #if __cplusplus >= 201703L
+
 #include <any>
 
 namespace sxs
@@ -121,11 +124,15 @@ namespace sxs
         namespace storage
         {
 
-            inline std::map<std::string, any> &_get_static_storage()
+            namespace
             {
-                static std::map<std::string, any> container{};
-                return container;
-            }
+                // hide this
+                inline std::map<std::string, any> &_get_static_storage()
+                {
+                    static std::map<std::string, any> container{};
+                    return container;
+                }
+            }  // namespace
 
             inline bool has_key(const std::string &key)
             {
@@ -134,7 +141,7 @@ namespace sxs
             }
 
             template <typename T>
-            inline T get(const std::string &key)
+            inline T &get(const std::string &key)
             {
                 auto &storage = _get_static_storage();
                 auto iter = storage.find(key);
@@ -144,13 +151,22 @@ namespace sxs
                     std::cout << exc.what() << std::endl;
                     throw exc;
                 }
-                return any_cast<T>(iter->second);
+                return any_cast<T &>(iter->second);
             }
 
             template <typename T>
-            inline void store(const std::string &key, T obj)
+            inline void store(const std::string &key, T &&obj)
             {
                 _get_static_storage()[key] = std::move(obj);
+            }
+
+            template <typename T, typename... Args>
+            inline void initialise_if_not_exists(const std::string &key, Args... args)
+            {
+                if (!has_key(key))
+                {
+                    store<T>(key, T{args...});
+                }
             }
 
             inline void clear()
