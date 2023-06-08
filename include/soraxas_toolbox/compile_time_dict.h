@@ -337,8 +337,7 @@ namespace sxs
 
 #endif  // SXS_COMPILE_TIME_DICT_H
 
-#if 1
-// #ifdef SXS_RUN_TESTS
+#ifdef SXS_RUN_TESTS
 /*
  * -------------------------------------------
  * Test cases and general usage for this file:

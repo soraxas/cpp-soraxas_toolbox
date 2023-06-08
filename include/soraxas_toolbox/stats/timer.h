@@ -443,8 +443,7 @@ namespace sxs
 
 }  // namespace sxs
 
-// #ifdef SXS_RUN_TESTS
-#if 1
+#ifdef SXS_RUN_TESTS
 /*
  * -------------------------------------------
  * Test cases and general usage for this file:

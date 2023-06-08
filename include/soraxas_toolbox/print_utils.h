@@ -93,8 +93,7 @@ inline std::ostream &operator<<(std::ostream &stream, const IterableContainer &v
     return stream;
 }
 
-#if 1
-// #ifdef SXS_RUN_TESTS
+#ifdef SXS_RUN_TESTS
 /*
  * -------------------------------------------
  * Test cases and general usage for this file:
