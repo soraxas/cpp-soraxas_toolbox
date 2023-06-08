@@ -5,8 +5,7 @@
 
 #include "../clock.h"
 #include "../external/ordered-map/ordered_map.h"
-
-#include <iostream>
+#include "../print_utils_core.h"
 
 namespace sxs
 {
@@ -93,7 +92,7 @@ namespace sxs
         size_t stats_size_max_len = 0;
         double total_time_spent = 0;
 
-        std::map<Token, std::string> token_to_str;
+        tsl::ordered_map<Token, std::string> token_to_str;
         for (auto &&item : stamped)
         {
             const std::pair<Token, Token> &key = item.first;
@@ -119,26 +118,27 @@ namespace sxs
 
             total_time_spent += item.second.sum;
         }
-        std::cout << "========== stamped result ==========" << std::endl;
+        sxs::println("========== stamped result ==========");
         for (auto &&item : stamped)
         {
             const Token token_from = item.first.first;
             const Token token_to = item.first.second;
 
-            std::cout << std::left                                                //
-                      << std::setw(string_1_max_len) << token_to_str[token_from]  // from
-                      << " -> "                                                   //
-                      << std::setw(string_2_max_len) << token_to_str[token_to]    // to
-                      << ": " << format_time2readable(item.second.mean_stdev)     // mean, stdev
-                      << " (" << format_time2readable(item.second.min) << "~"     // min
-                      << format_time2readable(item.second.max) << ")"             // max
-                      << " [Σ^" << std::setw(stats_size_max_len)
-                      << item.second.count  // number of collected stats size
-                      << "=" << format_time2readable(item.second.sum) << "|"  // sum
-                      << _FIX_WIDTH_DECIMAL(3) << (item.second.sum / total_time_spent * 100) << "%]"
-                      << std::endl;  // percentage of time spent
+            *sxs::get_print_output_stream()
+                << std::left                                                //
+                << std::setw(string_1_max_len) << token_to_str[token_from]  // from
+                << " -> "                                                   //
+                << std::setw(string_2_max_len) << token_to_str[token_to]    // to
+                << ": " << format_time2readable(item.second.mean_stdev)     // mean, stdev
+                << " (" << format_time2readable(item.second.min) << "~"     // min
+                << format_time2readable(item.second.max) << ")"             // max
+                << " [Σ^" << std::setw(stats_size_max_len)
+                << item.second.count  // number of collected stats size
+                << "=" << format_time2readable(item.second.sum) << "|"  // sum
+                << _FIX_WIDTH_DECIMAL(3) << (item.second.sum / total_time_spent * 100) << "%]"
+                << std::endl;  // percentage of time spent
         }
-        std::cout << "====================================" << std::endl;
+        sxs::println("====================================");
     }
 
     template <typename Token, typename F>
@@ -243,7 +243,7 @@ namespace sxs
           , m_print_starter(print_starter)
         {
             if (m_print_starter)
-                std::cout << "[" << name << "] (computing...)" << std::flush;
+                *sxs::get_print_output_stream() << "[" << name << "] (computing...)" << std::flush;
         }
 
         ~TimeStamperBase()
@@ -270,12 +270,12 @@ namespace sxs
             if (m_autoprint)
             {
                 if (m_print_starter)
-                    std::cout << '\r';  // erase line
+                    *sxs::get_print_output_stream() << '\r';  // erase line
                 if (!stamped.empty())
                     print_stamped_stats();
                 else
                     // run the current class' string operator
-                    std::cout << operator std::string() << std::endl;
+                    *sxs::get_print_output_stream() << operator std::string() << std::endl;
             }
         }
 
@@ -330,6 +330,12 @@ namespace sxs
             long num;
 
         public:
+            using iterator_category = std::output_iterator_tag;
+            using value_type = stat_t;
+            using difference_type = stat_t;
+            using pointer = const stat_t *;
+            using reference = stat_t;
+
             explicit iterator(
                 const std::vector<TimeStamperStatIteratorReturnType<Token>> &ref, long _num
             )
@@ -437,25 +443,36 @@ namespace sxs
 
 }  // namespace sxs
 
-#ifdef SXS_RUN_TESTS
+// #ifdef SXS_RUN_TESTS
+#if 1
 /*
  * -------------------------------------------
  * Test cases and general usage for this file:
  * -------------------------------------------
  */
+
+#include "soraxas_toolbox/print_utils.h"
+#include "soraxas_toolbox/string.h"
+
 namespace __sxs_timer
 {
+
     TEST_CASE("[sxs] An int vector with some items")
     {
+        // assign print output stream to void
+        sxs::SXSPrintOutputStreamGuard guard;
+
         sxs::TimeStamperDynamic timer;
         timer.stamp("hi");
         timer.stamp("hbye");
         timer.stamp("hi");
         timer.stamp("hi");
 
-        println(timer);
+        sxs::println(timer);
 
         print_compiled_stats(compile_result(timer));
+        CHECK(sxs::string::contains(guard.oss().str(), "stamped result"));
+        CHECK(sxs::string::contains(guard.oss().str(), "hbye"));
     }
 
     SXS_DEFINE_ENUM_AND_TRAITS(
@@ -467,6 +484,8 @@ namespace __sxs_timer
 
     TEST_CASE("[sxs] An int vector with some items")
     {
+        sxs::SXSPrintOutputStreamGuard guard;
+
         sxs::TimeStamper<my_smart_enum> timer;
         timer.stamp<my_smart_enum::myval1>();
         timer.stamp<my_smart_enum::myval1>();
@@ -475,9 +494,12 @@ namespace __sxs_timer
         timer.stamp<my_smart_enum::myval2>();
         timer.stamp<my_smart_enum::myval3>();
 
-        println(timer);
+        sxs::println(timer);
 
         print_compiled_stats(compile_result(timer));
+        CHECK(sxs::string::contains(guard.oss().str(), "myval1"));
+        CHECK(sxs::string::contains(guard.oss().str(), "myval3"));
+        CHECK(!sxs::string::contains(guard.oss().str(), "myval3notexists"));
     }
 
 }  // namespace __sxs_timer

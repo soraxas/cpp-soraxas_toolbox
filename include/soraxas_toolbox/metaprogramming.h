@@ -92,6 +92,7 @@ namespace __sxs_metaprogramming
 
     int serialize(const B &_)
     {
+        return 3;
     }
 
     std::string to_string(B a)

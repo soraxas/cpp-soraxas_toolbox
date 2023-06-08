@@ -2,6 +2,9 @@
 
 #include "token.h"
 
+#include <limits>
+#include <math.h>
+
 namespace sxs
 {
 

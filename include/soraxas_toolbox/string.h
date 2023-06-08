@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+// functions to manipulate string
 namespace sxs
 {
     namespace string
@@ -99,6 +100,23 @@ namespace sxs
                 ss << *(begin++);
             }
             return ss.str();
+        }
+
+        inline bool contains(const std::string &main_string, const std::string &substring)
+        {
+            return main_string.find(substring) != std::string::npos;
+        }
+
+        inline size_t count(const std::string &main_string, const std::string &substring)
+        {
+            size_t occurrences = 0;
+            std::string::size_type pos = 0;
+            while ((pos = main_string.find(substring, pos)) != std::string::npos)
+            {
+                ++occurrences;
+                pos += substring.length();
+            }
+            return occurrences;
         }
 
         inline bool startsWith(const std::string &s, const std::string &token)

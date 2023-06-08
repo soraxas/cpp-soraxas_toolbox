@@ -27,7 +27,7 @@
  *
  *     ================================================================
  *
- *     using numdict = sxs::CompileTimeMappingTypeDict<CT_STR("yes storage");
+ *     using numdict = sxs::CompileTimeMappingTypeDict<CT_STR("yes storage")>;
  *
  *     numdict::print_dict();
  *
@@ -40,6 +40,8 @@
  */
 
 #include "compile_time_string.h"
+#include "string_from_stuff.h"  // for printing dict
+#include "vector_math.h"        // for printing dict
 
 #include <iostream>
 #include <typeindex>
@@ -49,7 +51,7 @@
 namespace sxs
 {
 
-    template <typename Tag, typename... Args>
+    template <typename Tag, typename DataType, typename... Args>
     struct _BaseRegisterClass
     {
     protected:
@@ -58,7 +60,7 @@ namespace sxs
         template <typename F>
         _BaseRegisterClass(const F &callback)
         {
-            callback.template __register<Args...>();
+            callback.template __register<DataType, Args...>();
         }
 
     public:
@@ -97,7 +99,7 @@ namespace sxs
     //    template<typename ...Args>
     //    _BaseRegisterClass<Args...> _BaseRegisterClass<Args...>::instance;
 
-    template <typename Tag, typename... Args>
+    template <typename Tag, typename DataType, typename... Args>
     class _AnyTypeRegisterClass
     {
     protected:
@@ -106,7 +108,7 @@ namespace sxs
         template <typename F>
         _AnyTypeRegisterClass(const F &callback)
         {
-            callback.template __register<Args...>();
+            callback.template __register<DataType, Args...>();
         }
 
     public:
@@ -127,47 +129,91 @@ namespace sxs
     public:
         using tag = Tag;
 
+        template <typename T>
+        using StoredValueReturnType = T &;
+
+        using StoredMappingValue = std::pair<std::type_index, void *>;
+
         template <typename CompileTimeString, typename T>
-        static T &of()
+        static StoredValueReturnType<T> of()
         {
             //            _CompileTimeAnyTypeDict_RegisterClass<Tag,
             //            CompileTimeString>::doRegister();
 
-            _AnyTypeRegisterClass<Tag, CompileTimeString>::doRegister();
+            _AnyTypeRegisterClass<Tag, T, CompileTimeString>::doRegister();
 
             static T thing;
             return thing;
         }
 
-        static std::unordered_set<std::string> &keys()
+        template <typename T>
+        static T runtime_retrieve(const std::string &key)
         {
-            static std::unordered_set<std::string> _keys;
-            return _keys;
+            // DANGEROUS! make sure the type is correct.
+
+            auto iter = mappings().find(key);
+            if (iter == mappings().end())
+                throw std::runtime_error("Key '" + key + "' does not exists");
+            void *function_ptr = iter->second.second;
+
+            // re-interpert the stored opaque pointer back to the function pointer with the
+            // requested type
+            return reinterpret_cast<StoredValueReturnType<T> (*)()>(function_ptr)();
+        }
+
+        static std::unordered_map<std::string, StoredMappingValue> &mappings()
+        {
+            static std::unordered_map<std::string, StoredMappingValue> _mapping;
+            return _mapping;
         }
 
         static void print_dict()
         {
-            std::cout << "===== Dict: " << tag::c_str() << " =====" << std::endl;
-            for (auto &&key : keys())
+            std::cout << "|==== Dict: " << tag::c_str() << " ====|" << std::endl;
+            for (auto &&key : mappings())
             {
-                std::cout << "- " << key << std::endl;
+                const auto &data_type = key.second.first;
+                std::cout << " - " << key.first << " (" << sxs::string::get_type_name(data_type)
+                          << ")";
+                if (data_type == std::type_index(typeid(int)))
+                {
+                    std::cout << ": " << runtime_retrieve<int>(key.first);
+                }
+                else if (data_type == std::type_index(typeid(double)))
+                {
+                    std::cout << ": " << runtime_retrieve<double>(key.first);
+                }
+                else if (data_type == std::type_index(typeid(std::string)))
+                {
+                    std::cout << ": \"" << runtime_retrieve<std::string>(key.first) << "\"";
+                }
+                else if (data_type == std::type_index(typeid(float)))
+                {
+                    std::cout << ": " << runtime_retrieve<float>(key.first);
+                }
+                std::cout << std::endl;
             }
-            std::cout << "===== ===== ===== =====" << std::endl;
+            std::cout << "|==== ===== ===== ====|" << std::endl;
         }
 
-        template <typename Key>
+        template <typename DataType, typename Key>
         static void __register()
         {
-            keys().insert(Key::c_str());
+            mappings().emplace(
+                Key::c_str(),
+                std::make_pair(
+                    std::type_index(typeid(DataType)), reinterpret_cast<void *>(&of<Key, DataType>)
+                )
+            );
         }
 
     private:
         CompileTimeAnyTypeDict() = delete;
     };
 
-    template <typename Tag, typename... Args>
-    _AnyTypeRegisterClass<Tag, Args...> _AnyTypeRegisterClass<Tag, Args...>::instance{
-        CompileTimeAnyTypeDict<Tag>{}};
+    template <typename Tag, typename DataType, typename... Args>
+    _AnyTypeRegisterClass<Tag, DataType, Args...>
+        _AnyTypeRegisterClass<Tag, DataType, Args...>::instance{CompileTimeAnyTypeDict<Tag>{}};
 
     // ========================================================
     // ========================================================
@@ -185,7 +231,7 @@ namespace sxs
      * @tparam Tag
      * @tparam Key
      */
-    template <typename Tag, typename Key, typename NumericType = double>
+    template <typename Tag, typename NumericType, typename Key>
     struct _CompileTimeNumericTypeDict_RegisterClass
     {
         static _CompileTimeNumericTypeDict_RegisterClass instance;
@@ -207,9 +253,9 @@ namespace sxs
      * @tparam T
      * @tparam Key
      */
-    template <typename T, typename Key, typename NumericType>
-    _CompileTimeNumericTypeDict_RegisterClass<T, Key, NumericType>
-        _CompileTimeNumericTypeDict_RegisterClass<T, Key, NumericType>::instance;
+    template <typename T, typename NumericType, typename Key>
+    _CompileTimeNumericTypeDict_RegisterClass<T, NumericType, Key>
+        _CompileTimeNumericTypeDict_RegisterClass<T, NumericType, Key>::instance;
 
     /**
      * A public facing compile time dict
@@ -226,7 +272,7 @@ namespace sxs
         static auto &of()
         {
             _CompileTimeNumericTypeDict_RegisterClass<
-                Tag, CompileTimeString, NumericType>::doRegister();
+                Tag, NumericType, CompileTimeString>::doRegister();
             static NumericType &thing = get_map<NumericType>()[CompileTimeString::c_str()];
             return thing;
         }
@@ -257,10 +303,18 @@ namespace sxs
         static void print_dict()
         {
             std::cout << "===== NumDict: " << tag::c_str() << " =====" << std::endl;
-            std::cout << " >> stored types:" << std::endl;
-            for (auto &&_typeid : get_stored_type_map_key())
+            std::cout << " >> stored types: ";
             {
-                std::cout << "- " << _typeid.name() << std::endl;
+                bool first_item = true;
+                for (auto &&_typeid : get_stored_type_map_key())
+                {
+                    if (!first_item)
+                        std::cout << ", ";
+                    std::cout << sxs::string::simplify_type_name(sxs::string::get_type_name(_typeid)
+                    );
+                    first_item = false;
+                }
+                std::cout << std::endl;
             }
             std::cout << " ----- " << std::endl;
             std::cout << " >> storage for double:" << std::endl;
@@ -282,3 +336,79 @@ namespace sxs
 }  // namespace sxs
 
 #endif  // SXS_COMPILE_TIME_DICT_H
+
+#if 1
+// #ifdef SXS_RUN_TESTS
+/*
+ * -------------------------------------------
+ * Test cases and general usage for this file:
+ * -------------------------------------------
+ */
+
+#include "print_utils.h"
+#include "string.h"
+
+TEST_CASE("[sxs] compile time dict initialise all occurance of item at the beginning")
+{
+    using dict = sxs::CompileTimeAnyTypeDict<CT_STR("my storage")>;
+    sxs::OutputStreamGuard guard{std::cout};
+
+    std::flush(guard.oss());
+    dict::print_dict();
+
+    // the 3 is the future inclusion
+    CHECK_EQ(sxs::string::count(guard.oss().str(), "\n"),
+             2 + 3);  // 2 lines means that it's empty
+    std::flush(guard.oss());
+
+    // afterwards, the item are mutated in logical order
+    dict::of<CT_STR("name"), std::string>() = "HAHA string 1";
+    CHECK_EQ(dict::of<CT_STR("name"), std::string>(), "HAHA string 1");
+    CHECK_EQ(dict::of<CT_STR("name2"), std::string>(), "");
+    dict::of<CT_STR("name2"), std::string>() = "2";
+    dict::of<CT_STR("name3"), std::string>() = "my string 3";
+    CHECK_EQ(dict::of<CT_STR("name2"), std::string>(), "2");
+    CHECK_EQ(dict::of<CT_STR("name3"), std::string>(), "my string 3");
+}
+
+TEST_CASE("[sxs] dict returns reference")
+{
+    using dict = sxs::CompileTimeAnyTypeDict<CT_STR("my 2nd storage")>;
+    sxs::OutputStreamGuard guard{std::cout};
+
+    dict::of<CT_STR("my stat"), double>() = 1;
+    dict::of<CT_STR("my stat"), double>() += 25;
+    CHECK_EQ(dict::of<CT_STR("my stat"), double>(), 26);
+
+    double &lets_keep_track_of_this = dict::of<CT_STR("my stat"), double>();
+    lets_keep_track_of_this *= -1;
+
+    CHECK_EQ(dict::of<CT_STR("my stat"), double>(), -26);
+}
+
+TEST_CASE("[sxs] dict in reference works")
+{
+    using numdict = sxs::CompileTimeMappingTypeDict<CT_STR("yes storage")>;
+
+    CHECK_EQ(numdict::of<CT_STR("im_double")>(), 0.0);
+    CHECK_EQ(numdict::of<CT_STR("im_int"), int>(), 0);
+
+    numdict::of<CT_STR("im_double")>() += 1.8;
+    numdict::of<CT_STR("im_int"), int>() += 1.8;
+    numdict::of<CT_STR("im_string"), std::string>() = "hihi";
+
+    CHECK_EQ(numdict::of<CT_STR("im_double")>(), 1.8);
+    CHECK_EQ(numdict::of<CT_STR("im_int"), int>(), 1);
+    CHECK_EQ(numdict::of<CT_STR("im_string"), std::string>(), "hihi");
+
+    numdict::of<CT_STR("ok")>() += 1;
+    CHECK_EQ(numdict::of<CT_STR("ok")>(), 1);
+
+    numdict::increment<CT_STR("ok")>();
+    CHECK_EQ(numdict::of<CT_STR("ok")>(), 2);
+
+    numdict::increment<CT_STR("ok")>();
+    CHECK_EQ(numdict::of<CT_STR("ok")>(), 3);
+}
+
+#endif  // SXS_RUN_TESTS

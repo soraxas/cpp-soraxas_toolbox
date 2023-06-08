@@ -69,7 +69,7 @@ namespace sxs
     }
 
 #define _FIX_WIDTH_DECIMAL(precision) /* +1 is for the decimal point */                            \
-    std::setprecision(precision) << std::left << std::setw(precision + 1)
+    std::setprecision((precision)) << std::left << std::setw((precision) + 1)
 
     inline std::string format_time2readable(const double elapsed, const int precision = 3)
     {

@@ -1,154 +1,15 @@
 #pragma once
 
 #include "forward_declare.h"
+#include "print_utils_core.h"
 #include "string.h"
+#include "string_from_stuff.h"
 
 #include <array>
-#include <cxxabi.h>
 #include <iostream>
 #include <map>
 #include <string>
-#include <typeindex>
 #include <vector>
-
-namespace sxs
-{
-    namespace string
-    {
-
-        inline std::string extract_container_name(const std::string &full_container_name)
-        {
-            int first_open_bracket = full_container_name.find('<');
-            if (first_open_bracket == std::string::npos)
-                return full_container_name;
-            return full_container_name.substr(0, first_open_bracket);
-        }
-
-        inline std::string extract_contained_value(const std::string &full_container_name)
-        {
-            int first_open_bracket = full_container_name.find('<');
-            int last_close_bracket = full_container_name.rfind('>');
-            if (first_open_bracket == std::string::npos || last_close_bracket == std::string::npos)
-                return "";
-            if (!(first_open_bracket < last_close_bracket))
-            {
-                // ill format of given name. abort.
-                return "";
-            }
-
-            return full_container_name.substr(
-                first_open_bracket + 1, last_close_bracket - (first_open_bracket + 1)
-            );
-        }
-
-        inline std::string __demangle_name(const char *name)
-        {
-            int status;
-            char *demangled = abi::__cxa_demangle(name, NULL, NULL, &status);
-            std::string demangled_str{demangled};
-            if (status)
-                free(demangled);
-            return demangled_str;
-        }
-
-        inline std::string get_type_name(const std::type_index &info)
-        {
-            return __demangle_name(info.name());
-        }
-
-        inline std::string get_type_name(const std::type_info &info)
-        {
-            return __demangle_name(info.name());
-        }
-
-        template <typename T>
-        std::string get_type_name(const T &var)
-        {
-            return get_type_name(typeid(var));
-        }
-
-        inline bool _simplify_type_name_mapping(std::string &container_name)
-        {
-            // return value indicates should the templated type be skipped
-            if (sxs::string::startsWith(container_name, "std::"))
-            {
-                container_name = container_name.substr(5);
-            }
-            if (container_name == "vector")
-                container_name = "vec";
-            else if (container_name == "pair")
-                container_name = "p";
-            else if (container_name == "allocator")
-            {
-                container_name = "";
-                return true;
-            }
-            else if (container_name.find("basic_string") != std::string::npos)
-            {
-                container_name = "str";
-                return true;
-            }
-            return false;
-        }
-
-        // forward declare
-        inline void simplify_type_name_inplace(std::string &type_name);
-
-        inline std::string _simplify_type_name__contained_value(std::string contained_name)
-        {
-            std::vector<std::string> parts =
-                sxs::string::split_if_not_inside(contained_name, ',', '<', '>');
-
-            std::for_each(parts.begin(), parts.end(), sxs::string::trim);
-
-            std::vector<std::string> out;
-            out.reserve(parts.size());
-            // skip empyt parts
-            for (auto &&p : parts)
-            {
-                simplify_type_name_inplace(p);
-                if (p != "")
-                    out.emplace_back(p);
-            }
-
-            return sxs::string::join(out, ",");
-        }
-
-        inline void simplify_type_name_inplace(std::string &type_name)
-        {
-            std::string first_half = extract_container_name(type_name);
-            if (_simplify_type_name_mapping(first_half))
-            {
-                // skip the templated type
-                type_name = first_half;
-                return;
-            }
-
-            std::string second_half = extract_contained_value(type_name);
-            if (second_half.size() == 0)
-            {
-                type_name = first_half;
-            }
-            else
-            {
-                type_name =
-                    first_half + "<" + _simplify_type_name__contained_value(second_half) + ">";
-            }
-        }
-
-        inline std::string simplify_type_name(std::string type_name)
-        {
-            simplify_type_name_inplace(type_name);
-            return type_name;
-        }
-
-        inline std::string simplify_type_name(const std::type_info &info)
-        {
-            return simplify_type_name(get_type_name(info));
-        }
-
-    }  // namespace string
-};     // namespace sxs
 
 // template for printing type info
 inline std::ostream &operator<<(std::ostream &out, const std::type_info &info)
@@ -199,14 +60,12 @@ std::ostream &operator<<(std::ostream &out, const std::tuple<Args...> &t)
 //// template for printing any iterable container
 // disable this template for std::string
 template <
-    class IterableContainer, class Begin = decltype(std::begin(std::declval<IterableContainer>())),
-    typename
+    class IterableContainer, class Begin, typename
 #if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
     ,
     typename
 #endif
     >
-
 inline std::ostream &operator<<(std::ostream &stream, const IterableContainer &vect)
 {
     using namespace sxs::string;
@@ -234,107 +93,39 @@ inline std::ostream &operator<<(std::ostream &stream, const IterableContainer &v
     return stream;
 }
 
-namespace sxs
-{
-    // return a pointer to a referenced ostream
-    inline static std::ostream *&get_print_output_stream()
-    {
-        static std::ostream *ostream{&std::cout};
-        return ostream;
-    }
-
-    inline void print_flush()
-    {
-        std::flush(*get_print_output_stream());
-    }
-
-    // variadic print function
-    template <typename T1>
-    inline void print(const T1 &first)
-    {
-        *get_print_output_stream() << first;
-    }
-
-    // specialisation
-    template <>
-    inline void print(const bool &boolean)
-    {
-        if (boolean)
-            print("true");
-        else
-            print("false");
-    }
-
-    template <typename T1, typename... T2>
-    inline void print(const T1 &first, const T2 &...rest)
-    {
-        print(first);
-        print(rest...);
-    }
-
-    template <typename T1>
-    inline void print_spaced(const T1 &first)
-    {
-        print(first);
-    }
-
-    /*
-     *  Print a comma separated list of any items, with space in-between
-     * */
-    template <typename T1, typename... T2>
-    inline void print_spaced(const T1 &first, const T2 &...rest)
-    {
-        print(first, " ");
-        print_spaced(rest...);
-    }
-
-    /*
-     *  Print an empty line
-     * */
-    template <typename... T>
-    inline void println()
-    {
-        *get_print_output_stream() << std::endl;
-    }
-
-    /*
-     *  Print a comma separated list of any items
-     * */
-    template <typename... T>
-    inline void println(const T &...rest)
-    {
-        print(rest...);
-        println();
-    }
-
-    /*
-     *  Print a comma separated list of any items, with space in-between
-     * */
-    template <typename... T>
-    inline void println_spaced(const T &...rest)
-    {
-        print_spaced(rest...);
-        println();
-    }
-
-}  // namespace sxs
-
-#ifdef SXS_RUN_TESTS
+#if 1
+// #ifdef SXS_RUN_TESTS
 /*
  * -------------------------------------------
  * Test cases and general usage for this file:
  * -------------------------------------------
  */
 
+TEST_CASE("[sxs] Test printing guard")
+{
+    using namespace sxs;
+
+    SXSPrintOutputStreamGuard guard;
+    std::ostringstream &oss = guard.get_ostream();
+    print("hey");
+    CHECK(oss.str() == "hey");
+    {
+        SXSPrintOutputStreamGuard guard2;
+        std::ostringstream &oss2 = guard2.get_ostream();
+        print("inner");
+        CHECK(oss.str() == "hey");
+        CHECK(oss2.str() == "inner");
+    }
+    print(" you");
+    CHECK(oss.str() == "hey you");
+}
+
 TEST_CASE("[sxs] Test printing to ostream")
 {
     using namespace sxs;
 
-    // assign print output stream to our ostream
-    std::ostringstream oss;
-
-    const auto _original_ostream = sxs::get_print_output_stream();
-    sxs::get_print_output_stream() = &oss;
+    SXSPrintOutputStreamGuard guard;
+    std::ostringstream &oss = guard.get_ostream();
 
     SUBCASE("[sxs] no newline")
     {
@@ -438,8 +229,6 @@ TEST_CASE("[sxs] Test printing to ostream")
             CHECK(oss.str() == "str");
         }
     }
-
-    sxs::get_print_output_stream() = _original_ostream;
 }
 
 #endif  // SXS_RUN_TESTS

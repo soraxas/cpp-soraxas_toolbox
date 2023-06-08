@@ -6,6 +6,12 @@
 
 #include <cuda_runtime.h>
 #include <functional>
+#include <iostream>
+
+// #define USE_CUDA_CHRONO
+#ifdef USE_CUDA_CHRONO
+#include <cuda/std/chrono>
+#endif
 
 namespace sxs
 {
@@ -24,26 +30,35 @@ namespace sxs
         // clang-format off
         // conditionally use smaller size to store index_
         using StorageIndexType =
-            std::conditional_t<
-            BufferSize < (2<<(8-1)), uint8_t,
                 std::conditional_t<
-                BufferSize < (2<<(16-1)), uint16_t,
+                        BufferSize < (2 << (8 - 1)), uint8_t,
                         std::conditional_t<
-                        BufferSize < (2<<(31-1)), uint32_t,
-                            uint_fast32_t
-                            >>>;
+                                BufferSize < (2 << (16 - 1)), uint16_t,
+                                std::conditional_t<
+                                        BufferSize < (2 << (31 - 1)), uint32_t,
+                                        uint_fast32_t
+                                >>>;
 
         // clang-format on
 
         struct StampedData
         {
             Token event;
+#ifdef USE_CUDA_CHRONO
+            std::chrono::high_resolution_clock::time_point timepoint;
+#else
             clock_t timepoint;
+#endif
         };
 
         explicit TimeStamperCUDA() = default;
 
         ~TimeStamperCUDA() = default;
+
+        __forceinline__ __device__ __host__ void reset()
+        {
+            index_ = 0;
+        }
 
         template <Token e>
         __forceinline__ __device__ void stamp()
@@ -51,7 +66,11 @@ namespace sxs
             if (index_ < BufferSize)
             {
                 events_[index_].event = e;
+#ifdef USE_CUDA_CHRONO
+                events_[index_].timepoint = std::chrono::high_resolution_clock::now();
+#else
                 events_[index_].timepoint = clock();
+#endif
 
                 ++index_;
             }
@@ -101,20 +120,41 @@ namespace sxs
 
             stat_t operator*() const
             {
+                //                double dur = ((double) (events_data_ref_[num + 1].timepoint -
+                //                events_data_ref_[num].timepoint
+                //                )) / CLOCKS_PER_SEC / CLOCKS_PER_SEC / CLOCKS_PER_SEC;
+                //                 std::cout << dur << " " << events_data_ref_[num ].timepoint <<
+                //                 std::endl;
+                assert(num + 1 < index_);
+                assert(events_data_ref_[num].timepoint < events_data_ref_[num + 1].timepoint);
                 return std::make_tuple<Token, Token, double>(
                     ((Token)events_data_ref_[num].event), ((Token)events_data_ref_[num + 1].event),
-                    ((double)events_data_ref_[num + 1].timepoint - events_data_ref_[num].timepoint
-                    ) / CLOCKS_PER_SEC
+#ifdef USE_CUDA_CHRONO
+                    std::chrono::duration<double, std::ratio<1>>(
+                        events_data_ref_[num + 1].timepoint - events_data_ref_[num].timepoint
+                    )
+#else
+                    ((double)(events_data_ref_[num + 1].timepoint - events_data_ref_[num].timepoint)
+                    ) / CLOCKS_PER_SEC /
+                        CLOCKS_PER_SEC / CLOCKS_PER_SEC
+#endif
                 );
             }
         };
 
-        iterator begin()
+        iterator begin() const
         {
             return iterator(events_, 0);
         }
 
-        iterator end()
+        iterator end() const
+        {
+            // FIXME currently this will leads to begin() == end() never be true if the container is
+            // empty
+            return iterator(events_, index_ - 1);
+        }
+
+        bool check_validity() const
         {
             if (index_ >= BufferSize - 1)
             {
@@ -122,8 +162,9 @@ namespace sxs
                 printf(" Buffer is full capacity at %u/%u\n", index_, BufferSize);
                 printf(" Some measurement might be missing.\n");
                 printf("=============================================\n");
+                return false;
             }
-            return iterator(events_, index_ - 1);
+            return true;
         }
     };
 }  // namespace sxs
