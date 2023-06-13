@@ -13,6 +13,8 @@
 
 #include "soraxas_toolbox/metaprogramming.h"
 
+#include <string>
+
 namespace sxs
 {
     namespace stats
@@ -27,6 +29,7 @@ namespace sxs
         template <typename Token>
         constexpr inline auto get_token_name(const Token &token)
         {
+#ifdef SXS_HAS_ENUM_HPP
             if constexpr (
                 std::is_enum<Token>::value &&
                 // make sure it's defined by enum-hpp
@@ -38,6 +41,7 @@ namespace sxs
                 return (ret == "") ? to_string(token) : ret;
             }
             else
+#endif
             {
                 /* if this fails, please provide a custom to_string implementation. */
                 return to_string(token);
