@@ -23,7 +23,11 @@ INSTALL (
     FILES_MATCHING PATTERN "*.h*")
 
 
-option(BUILD_SXS_WITH_TESTS "run test" ON)
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+  option(BUILD_SXS_WITH_TESTS "run test" ON)
+else()
+  option(BUILD_SXS_WITH_TESTS "run test" OFF)
+endif()
 
 if(BUILD_SXS_WITH_TESTS)
   add_subdirectory(tests)
