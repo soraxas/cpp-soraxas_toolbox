@@ -236,7 +236,7 @@ namespace sxs
             template <typename T, Flags flag = Flags::unified_storage, typename... Args>
             inline auto &get_or_initialise(const std::string &key, Args... args)
             {
-                initialise_if_not_exists<T, flag>("timer", std::forward<Args>(args)...);
+                initialise_if_not_exists<T, flag>(key, std::forward<Args>(args)...);
                 return get<T, flag>(key);
             }
 
@@ -252,5 +252,46 @@ namespace sxs
     namespace g = globals;            // namespace alias
     namespace gs = globals::storage;  // namespace alias
 }  // namespace sxs
+
+#ifdef SXS_RUN_TESTS
+/*
+ * -------------------------------------------
+ * Test cases and general usage for this file:
+ * -------------------------------------------
+ */
+
+TEST_CASE("[sxs] Test global storage")
+{
+    using namespace sxs;
+
+    CHECK(!sxs::gs::has_key("my_int"));
+    sxs::gs::initialise_if_not_exists<int>("my_int");
+    CHECK(sxs::gs::has_key("my_int"));
+
+    // default initialise (which would be zero).
+    CHECK_EQ(sxs::gs::get<int>("my_int"), 0);
+
+    // check re-initialise does not change its value
+    sxs::gs::get<int>("my_int") = 42;
+    CHECK_EQ(sxs::gs::get<int>("my_int"), 42);
+    sxs::gs::initialise_if_not_exists<int>("my_int");
+    CHECK_EQ(sxs::gs::get<int>("my_int"), 42);
+
+    // bad cast
+    CHECK_THROWS_AS(sxs::gs::get<double>("my_int"), const std::bad_any_cast &);
+
+    // check key not exists
+    OutputStreamGuard err_guard(std::cerr);  // remove output from stdandard error
+    SXSPrintOutputStreamGuard guard;         // remove output from sxs::print
+    CHECK_THROWS_AS(sxs::gs::get<double>("missing value"), const sxs::globals::GlobalStorageKeyNotExists &);
+
+    // check get or initialise
+    auto &my_uint = sxs::gs::get_or_initialise<uint32_t>("my_uint");
+    CHECK_EQ(sxs::gs::get<uint32_t>("my_uint"), 0);
+    my_uint = 152;
+    CHECK_EQ(sxs::gs::get<uint32_t>("my_uint"), 152);
+}
+
+#endif  // SXS_RUN_TESTS
 
 #endif  // SXS_GLOBALS

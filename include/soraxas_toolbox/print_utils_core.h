@@ -98,6 +98,7 @@ namespace sxs
          */
     public:
         explicit OutputStreamGuard(std::ostream &stream_to_be_swapped)
+          : stream_to_be_swapped_(stream_to_be_swapped)
         {
             // capture
             original_stream_ = stream_to_be_swapped.rdbuf(oss_.rdbuf());
@@ -106,7 +107,7 @@ namespace sxs
         ~OutputStreamGuard()
         {
             // reset
-            std::cout.rdbuf(original_stream_);
+            stream_to_be_swapped_.rdbuf(original_stream_);
         }
 
         std::ostringstream &oss()
@@ -122,6 +123,7 @@ namespace sxs
     private:
         std::streambuf *original_stream_;
         std::ostringstream oss_;
+        std::ostream &stream_to_be_swapped_;
     };
 
     class SXSPrintOutputStreamGuard : public OutputStreamGuard
