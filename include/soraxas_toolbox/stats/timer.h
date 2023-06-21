@@ -474,6 +474,7 @@ namespace __sxs_timer
         CHECK(sxs::string::contains(guard.oss().str(), "hbye"));
     }
 
+#ifdef SXS_HAS_ENUM_HPP
     SXS_DEFINE_ENUM_AND_TRAITS(
         my_smart_enum, char,  //
         (myval1)              //
@@ -500,6 +501,7 @@ namespace __sxs_timer
         CHECK(sxs::string::contains(guard.oss().str(), "myval3"));
         CHECK(!sxs::string::contains(guard.oss().str(), "myval3notexists"));
     }
+#endif
 
 }  // namespace __sxs_timer
 #endif  // SXS_RUN_TESTS

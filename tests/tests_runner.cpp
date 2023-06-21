@@ -9,6 +9,7 @@
 #include <soraxas_toolbox/clock.h>
 #include <soraxas_toolbox/compile_time_dict.h>
 #include <soraxas_toolbox/format.h>
+#include <soraxas_toolbox/globals.h>
 #include <soraxas_toolbox/metaprogramming.h>
 #include <soraxas_toolbox/print_utils.h>
 #include <soraxas_toolbox/stats/timer.h>

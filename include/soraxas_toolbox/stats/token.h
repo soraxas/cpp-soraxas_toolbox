@@ -89,6 +89,7 @@ namespace sxs
  */
 namespace __sxs_token
 {
+
 #ifdef SXS_HAS_ENUM_HPP
     SXS_DEFINE_ENUM_AND_TRAITS(
         my_smart_enum, char,  //
@@ -131,7 +132,8 @@ namespace __sxs_token
             CHECK(get_token_name(MyUnnamedEnum::other_val2) == "1");
         }
     }
-}  // namespace __sxs_token
 #endif  // SXS_HAS_ENUM_HPP
+
+}  // namespace __sxs_token
 
 #endif  // SXS_RUN_TESTS
