@@ -60,7 +60,7 @@ std::ostream &operator<<(std::ostream &out, const std::tuple<Args...> &t)
 //// template for printing any iterable container
 // disable this template for std::string
 template <
-    class IterableContainer, class Begin, typename
+    class IterableContainer, class Begin, class ValueType, typename
 #if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
     ,
     typename
@@ -69,10 +69,6 @@ template <
 inline std::ostream &operator<<(std::ostream &stream, const IterableContainer &vect)
 {
     using namespace sxs::string;
-
-    // retrieve datatype of the iterable
-    using IterableContainerIteratorType = decltype(std::begin(std::declval<IterableContainer>()));
-    using ValueType = typename std::iterator_traits<IterableContainerIteratorType>::value_type;
 
     const char *dlm = "";
     //    std::string container_type_name =
@@ -126,6 +122,7 @@ TEST_CASE("[sxs] Test printing to ostream")
     SXSPrintOutputStreamGuard guard;
     std::ostringstream &oss = guard.get_ostream();
 
+    std::ostream *aaa = &oss;
     SUBCASE("[sxs] no newline")
     {
         print("Hello world");
@@ -226,6 +223,16 @@ TEST_CASE("[sxs] Test printing to ostream")
         {
             print(typeid(std::string));
             CHECK(oss.str() == "str");
+        }
+    }
+
+    SUBCASE("[sxs] print iterable")
+    {
+        SUBCASE("")
+        {
+            std::vector<double> container{1, 2, 5};
+            print(container);
+            CHECK(oss.str() == "[1, 2, 5]");
         }
     }
 }

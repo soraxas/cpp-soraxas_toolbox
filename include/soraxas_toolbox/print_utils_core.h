@@ -91,14 +91,38 @@ namespace sxs
         println();
     }
 
-    class OutputStreamGuard
+    class OutputStreamGuardBase
+    {
+        /*
+         * An RAII interface for changing output stream within some scope
+         */
+    public:
+        std::ostringstream &oss()
+        {
+            return get_ostream();
+        }
+
+        std::ostringstream &get_ostream()
+        {
+            return oss_;
+        }
+
+    protected:
+        explicit OutputStreamGuardBase()
+        {
+        }
+
+        std::ostringstream oss_;
+    };
+
+    class OutputStreamGuard : public OutputStreamGuardBase
     {
         /*
          * An RAII interface for changing output stream within some scope
          */
     public:
         explicit OutputStreamGuard(std::ostream &stream_to_be_swapped)
-          : stream_to_be_swapped_(stream_to_be_swapped)
+          : OutputStreamGuardBase(), stream_to_be_swapped_(stream_to_be_swapped)
         {
             // capture
             original_stream_ = stream_to_be_swapped.rdbuf(oss_.rdbuf());
@@ -110,31 +134,30 @@ namespace sxs
             stream_to_be_swapped_.rdbuf(original_stream_);
         }
 
-        std::ostringstream &oss()
-        {
-            return get_ostream();
-        }
-
-        std::ostringstream &get_ostream()
-        {
-            return oss_;
-        }
-
     private:
         std::streambuf *original_stream_;
-        std::ostringstream oss_;
         std::ostream &stream_to_be_swapped_;
     };
 
-    class SXSPrintOutputStreamGuard : public OutputStreamGuard
+    class SXSPrintOutputStreamGuard : public OutputStreamGuardBase
     {
         /*
          * An RAII interface for changing output stream within some scope
          */
     public:
-        explicit SXSPrintOutputStreamGuard() : OutputStreamGuard(*sxs::get_print_output_stream())
+        explicit SXSPrintOutputStreamGuard() : OutputStreamGuardBase()
         {
+            original_stream_ = sxs::get_print_output_stream();
+            sxs::get_print_output_stream() = &oss_;
         }
+
+        ~SXSPrintOutputStreamGuard()
+        {
+            sxs::get_print_output_stream() = original_stream_;
+        }
+
+    protected:
+        std::ostream *original_stream_;
     };
 
 }  // namespace sxs
