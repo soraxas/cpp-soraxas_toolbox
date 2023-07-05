@@ -15,3 +15,8 @@
 #include <soraxas_toolbox/stats/timer.h>
 #include <soraxas_toolbox/stats/token.h>
 #include <soraxas_toolbox/vector_math.h>
+
+#ifdef HAS_EIGEN_
+#include <soraxas_toolbox/eigen_helpers.h>
+#include <soraxas_toolbox/eigen_math.h>
+#endif

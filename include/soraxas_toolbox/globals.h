@@ -46,9 +46,23 @@ namespace sxs
 
         enum class Flags
         {
-            unified_storage,
-            per_thread,
+            per_thread = 0,
+            unified_storage = 1,
         };
+
+        constexpr const Flags DefaultStorageFlag = Flags::unified_storage;
+
+        constexpr const char *FlagsToString(Flags flag)
+        {
+            switch (flag)
+            {
+                case Flags::unified_storage:
+                    return "unified_storage";
+                case Flags::per_thread:
+                    return "per_thread";
+            }
+            return "undefined";
+        }
 
         namespace
         {
@@ -151,7 +165,7 @@ namespace sxs
             {
                 // hide this
                 template <Flags flag>
-                inline auto &_get_static_storage()
+                inline std::map<std::string, any> &_get_static_storage()
                 {
                     throw std::runtime_error("Flag is not implemented");
                     // static std::map<std::string, any> container{};
@@ -159,43 +173,46 @@ namespace sxs
                 }
 
                 template <>
-                inline auto &_get_static_storage<Flags::unified_storage>()
+                inline std::map<std::string, any> &_get_static_storage<Flags::unified_storage>()
                 {
                     static std::map<std::string, any> container{};
                     return container;
                 }
 
                 template <>
-                inline auto &_get_static_storage<Flags::per_thread>()
+                inline std::map<std::string, any> &_get_static_storage<Flags::per_thread>()
                 {
                     static std::map<std::thread::id, std::map<std::string, any>> container{};
                     auto thread_id = std::this_thread::get_id();
-                    sxs::println(thread_id);
 
                     auto container_iterator = container.find(thread_id);
 
                     if (container_iterator == container.end())
                     { /* Not found */
-                        container[thread_id] = {};
+                        container_iterator =
+                            container.emplace(thread_id, std::map<std::string, any>{}).first;
                         // _allocate_stats_for_this_thread(thread_id);
-                        container_iterator = container.find(thread_id);  // need to search again
+                        //                        container_iterator = container.find(thread_id); //
+                        //                        need to search again
                         // assert(container_iterator != container.end());
                     }
                     return (*container_iterator).second;
                 }
             }  // namespace
 
-            template <Flags flag = Flags::unified_storage>
+            template <Flags flag = DefaultStorageFlag>
             inline bool has_key(const std::string &key)
             {
                 auto &storage = _get_static_storage<flag>();
                 return storage.find(key) != storage.end();
             }
 
-            template <Flags flag = Flags::unified_storage>
+            template <Flags flag = DefaultStorageFlag>
             inline void print_stored_info()
             {
-                sxs::println("========== Static Storage ==========");
+                sxs::println(
+                    "========== Static Storage (flag=", FlagsToString(flag), ") =========="
+                );
                 for (auto &&item : _get_static_storage<flag>())
                 {
                     sxs::println(item.first, ": [type] = ", item.second.type().name());
@@ -203,28 +220,50 @@ namespace sxs
                 sxs::println("====================================");
             }
 
-            template <typename T, Flags flag = Flags::unified_storage>
+            namespace
+            {
+                template <Flags flag = DefaultStorageFlag>
+                inline auto _find_key_from_static_storage_with_throw(const std::string &key)
+                {
+                    auto &storage = _get_static_storage<flag>();
+                    auto iter = storage.find(key);
+                    if (iter == storage.end())
+                    {
+                        sxs::SXSPrintOutputStreamGuard();
+                        sxs::get_print_output_stream() = &std::cerr;
+
+                        auto exc = sxs::globals::GlobalStorageKeyNotExists(key);
+                        sxs::println(exc.what());
+                        sxs::println("> current flag: ", FlagsToString(flag));
+                        print_stored_info<Flags::unified_storage>();
+                        print_stored_info<Flags::per_thread>();
+                        throw exc;
+                    }
+                    return iter;
+                }
+            }  // namespace
+
+            template <typename T, Flags flag = DefaultStorageFlag>
             inline T &get(const std::string &key)
             {
-                auto &storage = _get_static_storage<flag>();
-                auto iter = storage.find(key);
-                if (iter == storage.end())
-                {
-                    auto exc = sxs::globals::GlobalStorageKeyNotExists(key);
-                    std::cerr << exc.what() << std::endl;
-                    print_stored_info<flag>();
-                    throw exc;
-                }
+                auto iter = _find_key_from_static_storage_with_throw<flag>(key);
                 return any_cast<T &>(iter->second);
             }
 
-            template <typename T, Flags flag = Flags::unified_storage>
-            inline void store(const std::string &key, T &&obj)
+            template <typename T, Flags flag = DefaultStorageFlag>
+            inline T get_value(const std::string &key)
             {
-                _get_static_storage<flag>()[key] = std::move(obj);
+                auto iter = _find_key_from_static_storage_with_throw<flag>(key);
+                return any_cast<T>(iter->second);
             }
 
-            template <typename T, Flags flag = Flags::unified_storage, typename... Args>
+            template <typename T, Flags flag = DefaultStorageFlag>
+            inline void store(const std::string &key, T &&obj)
+            {
+                _get_static_storage<flag>().emplace(key, std::move(obj));
+            }
+
+            template <typename T, Flags flag = DefaultStorageFlag, typename... Args>
             inline void initialise_if_not_exists(const std::string &key, Args... args)
             {
                 if (!has_key<flag>(key))
@@ -233,14 +272,14 @@ namespace sxs
                 }
             }
 
-            template <typename T, Flags flag = Flags::unified_storage, typename... Args>
+            template <typename T, Flags flag = DefaultStorageFlag, typename... Args>
             inline auto &get_or_initialise(const std::string &key, Args... args)
             {
                 initialise_if_not_exists<T, flag>(key, std::forward<Args>(args)...);
                 return get<T, flag>(key);
             }
 
-            template <Flags flag = Flags::unified_storage>
+            template <Flags flag = DefaultStorageFlag>
             inline void clear()
             {
                 _get_static_storage<flag>().clear();
