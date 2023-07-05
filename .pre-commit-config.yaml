@@ -2,5 +2,14 @@ repos:
   - repo: https://github.com/doublify/pre-commit-clang-format
     rev: 62302476d0da01515660132d76902359bed0f782
     hooks:
-    -   id: clang-format
-    
+    - id: clang-format
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.1
+    hooks:
+      - id: insert-license
+        name: "Insert license header in C++ source files"
+        args: [--license-filepath=LICENSE,
+               '--comment-style=/*| *| */',
+               --use-current-year,
+               --detect-license-in-X-top-lines=16]
+        types_or: [c, c++, objective-c]
