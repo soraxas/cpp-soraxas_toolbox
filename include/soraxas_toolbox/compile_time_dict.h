@@ -78,288 +78,286 @@
 namespace sxs
 {
 
-    template <typename Tag, typename DataType, typename... Args>
-    struct _BaseRegisterClass
+template <typename Tag, typename DataType, typename... Args>
+struct _BaseRegisterClass
+{
+protected:
+    static _BaseRegisterClass instance;
+
+    template <typename F>
+    _BaseRegisterClass(const F &callback)
     {
-    protected:
-        static _BaseRegisterClass instance;
+        callback.template __register<DataType, Args...>();
+    }
 
-        template <typename F>
-        _BaseRegisterClass(const F &callback)
-        {
-            callback.template __register<DataType, Args...>();
-        }
-
-    public:
-        static const _BaseRegisterClass &doRegister()
-        {
-            return instance;
-        }
-    };
-
-    //    template<typename Tag, typename ...Args>
-    //    _BaseRegisterClass<Tag, Args...>
-    //            _BaseRegisterClass<Tag, Args...>::instance{CompileTimeAnyTypeDict<Tag>{}};
-
-    /*
-     * Forward declare the actual Dict
-     */
-    template <typename Tag>
-    class CompileTimeAnyTypeDict;
-
-    template <typename Tag>
-    class CompileTimeMappingTypeDict;
-
-    /**
-     * Helper class that register used dict tag and key at compile time.
-     * The keys are being insert into the unordered map at static storage
-     * allocation time, where the keys are in the map even before their
-     * first usage in code (which is pretty cool eh?).
-     *
-     * see
-     * https://stackoverflow.com/questions/28052989/can-i-have-template-instantiation-side-effects
-     *
-     * @tparam Tag
-     * @tparam Key
-     */
-
-    //    template<typename ...Args>
-    //    _BaseRegisterClass<Args...> _BaseRegisterClass<Args...>::instance;
-
-    template <typename Tag, typename DataType, typename... Args>
-    class _AnyTypeRegisterClass
+public:
+    static const _BaseRegisterClass &doRegister()
     {
-    protected:
-        static _AnyTypeRegisterClass instance;
+        return instance;
+    }
+};
 
-        template <typename F>
-        _AnyTypeRegisterClass(const F &callback)
-        {
-            callback.template __register<DataType, Args...>();
-        }
+//    template<typename Tag, typename ...Args>
+//    _BaseRegisterClass<Tag, Args...>
+//            _BaseRegisterClass<Tag, Args...>::instance{CompileTimeAnyTypeDict<Tag>{}};
 
-    public:
-        static const _AnyTypeRegisterClass &doRegister()
-        {
-            return instance;
-        }
-    };
+/*
+ * Forward declare the actual Dict
+ */
+template <typename Tag>
+class CompileTimeAnyTypeDict;
 
-    /**
-     * A public facing compile time dict
-     *
-     * @tparam Tag
-     */
-    template <typename Tag>
-    class CompileTimeAnyTypeDict
+template <typename Tag>
+class CompileTimeMappingTypeDict;
+
+/**
+ * Helper class that register used dict tag and key at compile time.
+ * The keys are being insert into the unordered map at static storage
+ * allocation time, where the keys are in the map even before their
+ * first usage in code (which is pretty cool eh?).
+ *
+ * see
+ * https://stackoverflow.com/questions/28052989/can-i-have-template-instantiation-side-effects
+ *
+ * @tparam Tag
+ * @tparam Key
+ */
+
+//    template<typename ...Args>
+//    _BaseRegisterClass<Args...> _BaseRegisterClass<Args...>::instance;
+
+template <typename Tag, typename DataType, typename... Args>
+class _AnyTypeRegisterClass
+{
+protected:
+    static _AnyTypeRegisterClass instance;
+
+    template <typename F>
+    _AnyTypeRegisterClass(const F &callback)
     {
-    public:
-        using tag = Tag;
+        callback.template __register<DataType, Args...>();
+    }
 
-        template <typename T>
-        using StoredValueReturnType = T &;
+public:
+    static const _AnyTypeRegisterClass &doRegister()
+    {
+        return instance;
+    }
+};
 
-        using StoredMappingValue = std::pair<std::type_index, void *>;
+/**
+ * A public facing compile time dict
+ *
+ * @tparam Tag
+ */
+template <typename Tag>
+class CompileTimeAnyTypeDict
+{
+public:
+    using tag = Tag;
 
-        template <typename CompileTimeString, typename T>
-        static StoredValueReturnType<T> of()
+    template <typename T>
+    using StoredValueReturnType = T &;
+
+    using StoredMappingValue = std::pair<std::type_index, void *>;
+
+    template <typename CompileTimeString, typename T>
+    static StoredValueReturnType<T> of()
+    {
+        //            _CompileTimeAnyTypeDict_RegisterClass<Tag,
+        //            CompileTimeString>::doRegister();
+
+        _AnyTypeRegisterClass<Tag, T, CompileTimeString>::doRegister();
+
+        static T thing;
+        return thing;
+    }
+
+    template <typename T>
+    static T runtime_retrieve(const std::string &key)
+    {
+        // DANGEROUS! make sure the type is correct.
+
+        auto iter = mappings().find(key);
+        if (iter == mappings().end())
+            throw std::runtime_error("Key '" + key + "' does not exists");
+        void *function_ptr = iter->second.second;
+
+        // re-interpert the stored opaque pointer back to the function pointer with the
+        // requested type
+        return reinterpret_cast<StoredValueReturnType<T> (*)()>(function_ptr)();
+    }
+
+    static std::unordered_map<std::string, StoredMappingValue> &mappings()
+    {
+        static std::unordered_map<std::string, StoredMappingValue> _mapping;
+        return _mapping;
+    }
+
+    static void print_dict()
+    {
+        std::cout << "|==== Dict: " << tag::c_str() << " ====|" << std::endl;
+        for (auto &&key : mappings())
         {
-            //            _CompileTimeAnyTypeDict_RegisterClass<Tag,
-            //            CompileTimeString>::doRegister();
-
-            _AnyTypeRegisterClass<Tag, T, CompileTimeString>::doRegister();
-
-            static T thing;
-            return thing;
-        }
-
-        template <typename T>
-        static T runtime_retrieve(const std::string &key)
-        {
-            // DANGEROUS! make sure the type is correct.
-
-            auto iter = mappings().find(key);
-            if (iter == mappings().end())
-                throw std::runtime_error("Key '" + key + "' does not exists");
-            void *function_ptr = iter->second.second;
-
-            // re-interpert the stored opaque pointer back to the function pointer with the
-            // requested type
-            return reinterpret_cast<StoredValueReturnType<T> (*)()>(function_ptr)();
-        }
-
-        static std::unordered_map<std::string, StoredMappingValue> &mappings()
-        {
-            static std::unordered_map<std::string, StoredMappingValue> _mapping;
-            return _mapping;
-        }
-
-        static void print_dict()
-        {
-            std::cout << "|==== Dict: " << tag::c_str() << " ====|" << std::endl;
-            for (auto &&key : mappings())
+            const auto &data_type = key.second.first;
+            std::cout << " - " << key.first << " (" << sxs::string::get_type_name(data_type) << ")";
+            if (data_type == std::type_index(typeid(int)))
             {
-                const auto &data_type = key.second.first;
-                std::cout << " - " << key.first << " (" << sxs::string::get_type_name(data_type)
-                          << ")";
-                if (data_type == std::type_index(typeid(int)))
-                {
-                    std::cout << ": " << runtime_retrieve<int>(key.first);
-                }
-                else if (data_type == std::type_index(typeid(double)))
-                {
-                    std::cout << ": " << runtime_retrieve<double>(key.first);
-                }
-                else if (data_type == std::type_index(typeid(std::string)))
-                {
-                    std::cout << ": \"" << runtime_retrieve<std::string>(key.first) << "\"";
-                }
-                else if (data_type == std::type_index(typeid(float)))
-                {
-                    std::cout << ": " << runtime_retrieve<float>(key.first);
-                }
-                std::cout << std::endl;
+                std::cout << ": " << runtime_retrieve<int>(key.first);
             }
-            std::cout << "|==== ===== ===== ====|" << std::endl;
+            else if (data_type == std::type_index(typeid(double)))
+            {
+                std::cout << ": " << runtime_retrieve<double>(key.first);
+            }
+            else if (data_type == std::type_index(typeid(std::string)))
+            {
+                std::cout << ": \"" << runtime_retrieve<std::string>(key.first) << "\"";
+            }
+            else if (data_type == std::type_index(typeid(float)))
+            {
+                std::cout << ": " << runtime_retrieve<float>(key.first);
+            }
+            std::cout << std::endl;
         }
+        std::cout << "|==== ===== ===== ====|" << std::endl;
+    }
 
-        template <typename DataType, typename Key>
-        static void __register()
-        {
-            mappings().emplace(
-                Key::c_str(),
-                std::make_pair(
-                    std::type_index(typeid(DataType)), reinterpret_cast<void *>(&of<Key, DataType>)
-                )
-            );
-        }
-
-    private:
-        CompileTimeAnyTypeDict() = delete;
-    };
-
-    template <typename Tag, typename DataType, typename... Args>
-    _AnyTypeRegisterClass<Tag, DataType, Args...>
-        _AnyTypeRegisterClass<Tag, DataType, Args...>::instance{CompileTimeAnyTypeDict<Tag>{}};
-
-    // ========================================================
-    // ========================================================
-    // ========================================================
-
-    /**
-     * Helper class that register used dict tag and key at compile time.
-     * The keys are being insert into the unordered map at static storage
-     * allocation time, where the keys are in the map even before their
-     * first usage in code (which is pretty cool eh?).
-     *
-     * see
-     * https://stackoverflow.com/questions/28052989/can-i-have-template-instantiation-side-effects
-     *
-     * @tparam Tag
-     * @tparam Key
-     */
-    template <typename Tag, typename NumericType, typename Key>
-    struct _CompileTimeNumericTypeDict_RegisterClass
+    template <typename DataType, typename Key>
+    static void __register()
     {
-        static _CompileTimeNumericTypeDict_RegisterClass instance;
+        mappings().emplace(
+            Key::c_str(),
+            std::make_pair(
+                std::type_index(typeid(DataType)), reinterpret_cast<void *>(&of<Key, DataType>)
+            )
+        );
+    }
 
-        _CompileTimeNumericTypeDict_RegisterClass()
-        {
-            CompileTimeMappingTypeDict<Tag>::template get_map<NumericType>()[Key::c_str()] = 0.;
-        }
+private:
+    CompileTimeAnyTypeDict() = delete;
+};
 
-        static const _CompileTimeNumericTypeDict_RegisterClass &doRegister()
-        {
-            return instance;
-        }
-    };
+template <typename Tag, typename DataType, typename... Args>
+_AnyTypeRegisterClass<Tag, DataType, Args...>
+    _AnyTypeRegisterClass<Tag, DataType, Args...>::instance{CompileTimeAnyTypeDict<Tag>{}};
 
-    /**
-     * A template static storage for each template register class
-     *
-     * @tparam T
-     * @tparam Key
-     */
-    template <typename T, typename NumericType, typename Key>
-    _CompileTimeNumericTypeDict_RegisterClass<T, NumericType, Key>
-        _CompileTimeNumericTypeDict_RegisterClass<T, NumericType, Key>::instance;
+// ========================================================
+// ========================================================
+// ========================================================
 
-    /**
-     * A public facing compile time dict
-     *
-     * @tparam Tag
-     */
-    template <typename Tag>
-    class CompileTimeMappingTypeDict
+/**
+ * Helper class that register used dict tag and key at compile time.
+ * The keys are being insert into the unordered map at static storage
+ * allocation time, where the keys are in the map even before their
+ * first usage in code (which is pretty cool eh?).
+ *
+ * see
+ * https://stackoverflow.com/questions/28052989/can-i-have-template-instantiation-side-effects
+ *
+ * @tparam Tag
+ * @tparam Key
+ */
+template <typename Tag, typename NumericType, typename Key>
+struct _CompileTimeNumericTypeDict_RegisterClass
+{
+    static _CompileTimeNumericTypeDict_RegisterClass instance;
+
+    _CompileTimeNumericTypeDict_RegisterClass()
     {
-    public:
-        using tag = Tag;
+        CompileTimeMappingTypeDict<Tag>::template get_map<NumericType>()[Key::c_str()] = 0.;
+    }
 
-        template <typename CompileTimeString, typename NumericType = double>
-        static auto &of()
-        {
-            _CompileTimeNumericTypeDict_RegisterClass<
-                Tag, NumericType, CompileTimeString>::doRegister();
-            static NumericType &thing = get_map<NumericType>()[CompileTimeString::c_str()];
-            return thing;
-        }
+    static const _CompileTimeNumericTypeDict_RegisterClass &doRegister()
+    {
+        return instance;
+    }
+};
 
-        template <typename CompileTimeString, typename T = double>
-        static auto &increment()
-        {
-            auto &&thing = of<CompileTimeString, T>();
-            thing += 1;
-            return thing;
-        }
+/**
+ * A template static storage for each template register class
+ *
+ * @tparam T
+ * @tparam Key
+ */
+template <typename T, typename NumericType, typename Key>
+_CompileTimeNumericTypeDict_RegisterClass<T, NumericType, Key>
+    _CompileTimeNumericTypeDict_RegisterClass<T, NumericType, Key>::instance;
 
-        template <typename NumericType = double>
-        static auto &get_map()
-        {
-            static std::unordered_map<std::string, NumericType> _map;
-            get_stored_type_map_key().insert(typeid(NumericType));
-            return _map;
-        }
+/**
+ * A public facing compile time dict
+ *
+ * @tparam Tag
+ */
+template <typename Tag>
+class CompileTimeMappingTypeDict
+{
+public:
+    using tag = Tag;
 
-        template <typename NumericType = double>
-        static auto &get_stored_type_map_key()
-        {
-            static std::unordered_set<std::type_index> stored_types;
-            return stored_types;
-        }
+    template <typename CompileTimeString, typename NumericType = double>
+    static auto &of()
+    {
+        _CompileTimeNumericTypeDict_RegisterClass<Tag, NumericType, CompileTimeString>::doRegister(
+        );
+        static NumericType &thing = get_map<NumericType>()[CompileTimeString::c_str()];
+        return thing;
+    }
 
-        static void print_dict()
+    template <typename CompileTimeString, typename T = double>
+    static auto &increment()
+    {
+        auto &&thing = of<CompileTimeString, T>();
+        thing += 1;
+        return thing;
+    }
+
+    template <typename NumericType = double>
+    static auto &get_map()
+    {
+        static std::unordered_map<std::string, NumericType> _map;
+        get_stored_type_map_key().insert(typeid(NumericType));
+        return _map;
+    }
+
+    template <typename NumericType = double>
+    static auto &get_stored_type_map_key()
+    {
+        static std::unordered_set<std::type_index> stored_types;
+        return stored_types;
+    }
+
+    static void print_dict()
+    {
+        std::cout << "===== NumDict: " << tag::c_str() << " =====" << std::endl;
+        std::cout << " >> stored types: ";
         {
-            std::cout << "===== NumDict: " << tag::c_str() << " =====" << std::endl;
-            std::cout << " >> stored types: ";
+            bool first_item = true;
+            for (auto &&_typeid : get_stored_type_map_key())
             {
-                bool first_item = true;
-                for (auto &&_typeid : get_stored_type_map_key())
-                {
-                    if (!first_item)
-                        std::cout << ", ";
-                    std::cout << sxs::string::simplify_type_name(sxs::string::get_type_name(_typeid)
-                    );
-                    first_item = false;
-                }
-                std::cout << std::endl;
+                if (!first_item)
+                    std::cout << ", ";
+                std::cout << sxs::string::simplify_type_name(sxs::string::get_type_name(_typeid));
+                first_item = false;
             }
-            std::cout << " ----- " << std::endl;
-            std::cout << " >> storage for double:" << std::endl;
-            for (auto &&key : get_map<double>())
-            {
-                std::cout << "- " << key.first << ": " << key.second << std::endl;
-            }
-            std::cout << " >> storage for int:" << std::endl;
-            for (auto &&key : get_map<int>())
-            {
-                std::cout << "- " << key.first << ": " << key.second << std::endl;
-            }
-            std::cout << "===== ===== ===== =====" << std::endl;
+            std::cout << std::endl;
         }
+        std::cout << " ----- " << std::endl;
+        std::cout << " >> storage for double:" << std::endl;
+        for (auto &&key : get_map<double>())
+        {
+            std::cout << "- " << key.first << ": " << key.second << std::endl;
+        }
+        std::cout << " >> storage for int:" << std::endl;
+        for (auto &&key : get_map<int>())
+        {
+            std::cout << "- " << key.first << ": " << key.second << std::endl;
+        }
+        std::cout << "===== ===== ===== =====" << std::endl;
+    }
 
-    private:
-        CompileTimeMappingTypeDict() = delete;
-    };
+private:
+    CompileTimeMappingTypeDict() = delete;
+};
 }  // namespace sxs
 
 #endif  // SXS_COMPILE_TIME_DICT_H

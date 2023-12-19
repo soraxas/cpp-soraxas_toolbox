@@ -40,65 +40,65 @@
 namespace cereal
 {
 
-    // ==================================================
-    // xarray
-    // ==================================================
+// ==================================================
+// xarray
+// ==================================================
 
-    template <class Archive, typename T>
-    void save(Archive &archive, const xt::xarray_container<T> &m)
-    {
-        sxs::SerialisableBinaryStream sbs;
-        xt::detail::dump_npy_stream(sbs.get_ostream(), m);
-        archive(sbs);
-    }
+template <class Archive, typename T>
+void save(Archive &archive, const xt::xarray_container<T> &m)
+{
+    sxs::SerialisableBinaryStream sbs;
+    xt::detail::dump_npy_stream(sbs.get_ostream(), m);
+    archive(sbs);
+}
 
-    template <class Archive, typename T>
-    void load(Archive &archive, xt::xarray_container<T> &m)
-    {
-        sxs::SerialisableBinaryStream sbs;
-        archive(sbs);
-        m = xt::load_npy<typename T::value_type>(sbs.get_istream());
-    }
+template <class Archive, typename T>
+void load(Archive &archive, xt::xarray_container<T> &m)
+{
+    sxs::SerialisableBinaryStream sbs;
+    archive(sbs);
+    m = xt::load_npy<typename T::value_type>(sbs.get_istream());
+}
 
-    // ==================================================
-    // xtensor
-    // ==================================================
+// ==================================================
+// xtensor
+// ==================================================
 
-    template <class Archive, typename T, std::size_t N>
-    void save(Archive &archive, const xt::xtensor_container<T, N> &m)
-    {
-        sxs::SerialisableBinaryStream sbs;
-        xt::detail::dump_npy_stream(sbs.get_ostream(), m);
-        archive(sbs);
-    }
+template <class Archive, typename T, std::size_t N>
+void save(Archive &archive, const xt::xtensor_container<T, N> &m)
+{
+    sxs::SerialisableBinaryStream sbs;
+    xt::detail::dump_npy_stream(sbs.get_ostream(), m);
+    archive(sbs);
+}
 
-    template <class Archive, typename T, std::size_t N>
-    void load(Archive &archive, xt::xtensor_container<T, N> &m)
-    {
-        sxs::SerialisableBinaryStream sbs;
-        archive(sbs);
-        m = xt::load_npy<typename T::value_type>(sbs.get_istream());
-    }
+template <class Archive, typename T, std::size_t N>
+void load(Archive &archive, xt::xtensor_container<T, N> &m)
+{
+    sxs::SerialisableBinaryStream sbs;
+    archive(sbs);
+    m = xt::load_npy<typename T::value_type>(sbs.get_istream());
+}
 
-    // ==================================================
-    // xfixed
-    // ==================================================
+// ==================================================
+// xfixed
+// ==================================================
 
-    template <class Archive, typename T, typename N>
-    void save(Archive &archive, const xt::xfixed_container<T, N> &m)
-    {
-        sxs::SerialisableBinaryStream sbs;
-        xt::detail::dump_npy_stream(sbs.get_ostream(), m);
-        archive(sbs);
-    }
+template <class Archive, typename T, typename N>
+void save(Archive &archive, const xt::xfixed_container<T, N> &m)
+{
+    sxs::SerialisableBinaryStream sbs;
+    xt::detail::dump_npy_stream(sbs.get_ostream(), m);
+    archive(sbs);
+}
 
-    template <class Archive, typename T, typename N>
-    void load(Archive &archive, xt::xfixed_container<T, N> &m)
-    {
-        sxs::SerialisableBinaryStream sbs;
-        archive(sbs);
-        m = xt::load_npy<T>(sbs.get_istream());
-    }
+template <class Archive, typename T, typename N>
+void load(Archive &archive, xt::xfixed_container<T, N> &m)
+{
+    sxs::SerialisableBinaryStream sbs;
+    archive(sbs);
+    m = xt::load_npy<T>(sbs.get_istream());
+}
 
 }  // namespace cereal
 

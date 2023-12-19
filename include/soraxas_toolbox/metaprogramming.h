@@ -73,84 +73,84 @@
 #ifdef SXS_RUN_TESTS
 namespace __sxs_metaprogramming
 {
-    /*
-     * -------------------------------------------
-     * Test cases and general usage for this file:
-     * -------------------------------------------
-     */
+/*
+ * -------------------------------------------
+ * Test cases and general usage for this file:
+ * -------------------------------------------
+ */
 
-    CREATE_METHOD_EXISTS_CHECKER(serialize)
+CREATE_METHOD_EXISTS_CHECKER(serialize)
 
-    TEST_CASE("[sxs] meta type checker for method checking")
+TEST_CASE("[sxs] meta type checker for method checking")
+{
+    struct X
     {
-        struct X
+        int serialize(const std::string &)
         {
-            int serialize(const std::string &)
-            {
-                return 42;
-            }
-        };
-
-        struct Y
-        {
-            int not_serialize(const std::string &)
-            {
-                return 42;
-            }
-        };
-
-        struct Z : X
-        {
-        };
-
-        CHECK(has_method_serialize<Z, int(const std::string &)>::value == 1);
-        CHECK(has_method_serialize<Y, int(const std::string &)>::value == 0);
-    }
-
-    CREATE_FUNCTION_EXISTS_CHECKER(serialize)
-
-    struct A
-    {
-    };
-
-    struct B
-    {
-    };
-
-    int serialize(const B &_)
-    {
-        return 3;
-    }
-
-    std::string to_string(B a)
-    {
-        return "ok";
-    }
-
-    namespace
-    {
-        using std::to_string;
-        CREATE_FUNCTION_EXISTS_CHECKER(to_string)
-
-        TEST_CASE("[sxs] meta type checker for free function")
-        {
-            CHECK(has_function_serialize<A>::value == false);
-            CHECK(has_function_serialize<B>::value == true);
-
-            CHECK(has_function_to_string<int>::value == true);
-            CHECK(has_function_to_string<double>::value == true);
-            CHECK(has_function_to_string<A>::value == false);
-            CHECK(has_function_to_string<B>::value == true);
+            return 42;
         }
-    }  // namespace
+    };
+
+    struct Y
+    {
+        int not_serialize(const std::string &)
+        {
+            return 42;
+        }
+    };
+
+    struct Z : X
+    {
+    };
+
+    CHECK(has_method_serialize<Z, int(const std::string &)>::value == 1);
+    CHECK(has_method_serialize<Y, int(const std::string &)>::value == 0);
+}
+
+CREATE_FUNCTION_EXISTS_CHECKER(serialize)
+
+struct A
+{
+};
+
+struct B
+{
+};
+
+int serialize(const B &_)
+{
+    return 3;
+}
+
+std::string to_string(B a)
+{
+    return "ok";
+}
+
+namespace
+{
+    using std::to_string;
+    CREATE_FUNCTION_EXISTS_CHECKER(to_string)
+
+    TEST_CASE("[sxs] meta type checker for free function")
+    {
+        CHECK(has_function_serialize<A>::value == false);
+        CHECK(has_function_serialize<B>::value == true);
+
+        CHECK(has_function_to_string<int>::value == true);
+        CHECK(has_function_to_string<double>::value == true);
+        CHECK(has_function_to_string<A>::value == false);
+        CHECK(has_function_to_string<B>::value == true);
+    }
+}  // namespace
 }  // namespace __sxs_metaprogramming
 
 #endif  // SXS_RUN_TESTS
 
 namespace sxs
 {
-    namespace metaprogramming
-    {
+namespace metaprogramming
+{
 /// Defines a "has_member_member_name" class template
 ///
 /// This template can be used to check if its "T" argument
@@ -197,73 +197,33 @@ namespace sxs
         static constexpr bool value = sizeof(test<T>(0)) == sizeof(yes_type);                      \
     };
 
-    }  // namespace metaprogramming
+}  // namespace metaprogramming
 }  // namespace sxs
 
 #ifdef SXS_RUN_TESTS
 namespace __sxs_metaprogramming
 {
-    /*
-     * -------------------------------------------
-     * Test cases and general usage for this file:
-     * -------------------------------------------
-     */
+/*
+ * -------------------------------------------
+ * Test cases and general usage for this file:
+ * -------------------------------------------
+ */
 
-    namespace
+namespace
+{
+    DEFINE_HAS_MEMBER_FUNC_TRAIT(lets_gooo)
+
+    TEST_CASE("[sxs] meta type checker for method checking")
     {
-        DEFINE_HAS_MEMBER_FUNC_TRAIT(lets_gooo)
-
-        TEST_CASE("[sxs] meta type checker for method checking")
+        struct X
         {
-            struct X
-            {
-                int lets_gooo(const std::string &)
-                {
-                    return 42;
-                }
-            };
-
-            struct Y
-            {
-                int nope_lets_gooo(const std::string &)
-                {
-                    return 42;
-                }
-            };
-
-            struct Z : X
-            {
-            };
-
-            CHECK(has_member_lets_gooo<Z>::value == 1);
-            CHECK(has_member_lets_gooo<Y>::value == 0);
-        }
-    }  // namespace
-
-    namespace
-    {
-
-        struct X_has_true
-        {
-            static constexpr bool do_it = true;
-
             int lets_gooo(const std::string &)
             {
                 return 42;
             }
         };
 
-        struct Y_has_false
-        {
-            static constexpr bool do_it = false;
-
-            int nope_lets_gooo(const std::string &)
-            {
-                return 42;
-            }
-        };
-
-        struct Z_has_nothing
+        struct Y
         {
             int nope_lets_gooo(const std::string &)
             {
@@ -271,15 +231,55 @@ namespace __sxs_metaprogramming
             }
         };
 
-        DEFINE_HAS_MEMBER_BOOL_TRAIT(do_it)
-
-        TEST_CASE("[sxs] meta type checker for method checking")
+        struct Z : X
         {
-            CHECK(has_member_bool_do_it<X_has_true>::value == 1);
-            CHECK(has_member_bool_do_it<Y_has_false>::value == 0);
-            CHECK(has_member_bool_do_it<Z_has_nothing>::value == 0);
+        };
+
+        CHECK(has_member_lets_gooo<Z>::value == 1);
+        CHECK(has_member_lets_gooo<Y>::value == 0);
+    }
+}  // namespace
+
+namespace
+{
+
+    struct X_has_true
+    {
+        static constexpr bool do_it = true;
+
+        int lets_gooo(const std::string &)
+        {
+            return 42;
         }
-    }  // namespace
+    };
+
+    struct Y_has_false
+    {
+        static constexpr bool do_it = false;
+
+        int nope_lets_gooo(const std::string &)
+        {
+            return 42;
+        }
+    };
+
+    struct Z_has_nothing
+    {
+        int nope_lets_gooo(const std::string &)
+        {
+            return 42;
+        }
+    };
+
+    DEFINE_HAS_MEMBER_BOOL_TRAIT(do_it)
+
+    TEST_CASE("[sxs] meta type checker for method checking")
+    {
+        CHECK(has_member_bool_do_it<X_has_true>::value == 1);
+        CHECK(has_member_bool_do_it<Y_has_false>::value == 0);
+        CHECK(has_member_bool_do_it<Z_has_nothing>::value == 0);
+    }
+}  // namespace
 
 }  // namespace __sxs_metaprogramming
 

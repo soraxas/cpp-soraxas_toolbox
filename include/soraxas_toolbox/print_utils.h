@@ -61,16 +61,16 @@ std::ostream &operator<<(std::ostream &out, const typename std::pair<T1, T2> &pa
 // template for printing tuple
 namespace sxs
 {
-    template <class Tuple, std::size_t N>
-    void __print_tuple(std::ostream &out, const Tuple &t)
+template <class Tuple, std::size_t N>
+void __print_tuple(std::ostream &out, const Tuple &t)
+{
+    if constexpr (N > 1)
     {
-        if constexpr (N > 1)
-        {
-            __print_tuple<Tuple, N - 1>(out, t);
-            out << ", ";
-        }
-        out << std::get<N - 1>(t);
+        __print_tuple<Tuple, N - 1>(out, t);
+        out << ", ";
     }
+    out << std::get<N - 1>(t);
+}
 }  // namespace sxs
 
 template <class... Args>

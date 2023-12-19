@@ -36,33 +36,33 @@
 // https://stackoverflow.com/questions/15858141/conveniently-declaring-compile-time-strings-in-c/15863804#15863804
 namespace sxs
 {
-    template <char... letters>
-    struct string_t
+template <char... letters>
+struct string_t
+{
+    static char const *c_str()
     {
-        static char const *c_str()
-        {
-            static constexpr char string[] = {letters..., '\0'};
-            return string;
-        }
-    };
+        static constexpr char string[] = {letters..., '\0'};
+        return string;
+    }
+};
 
-    template <typename... Args>
-    struct is_compile_time_string
+template <typename... Args>
+struct is_compile_time_string
+{
+    enum
     {
-        enum
-        {
-            value = false
-        };
+        value = false
     };
+};
 
-    template <char... letters>
-    struct is_compile_time_string<sxs::string_t<letters...>>
+template <char... letters>
+struct is_compile_time_string<sxs::string_t<letters...>>
+{
+    enum
     {
-        enum
-        {
-            value = true
-        };
+        value = true
     };
+};
 }  // namespace sxs
 
 #define DEFER(...) __VA_ARGS__ EMPTY()

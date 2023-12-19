@@ -37,93 +37,93 @@
 namespace sxs
 {
 
-    const std::pair<double, const char *> &get_si_unit_and_factor(double value)
+const std::pair<double, const char *> &get_si_unit_and_factor(double value)
+{
+    static constexpr const std::array<std::pair<double, const char *>, 8> si_units = {
+        // let i be the index, then,
+        // si_unit[i] is valid iff its value is betweel value_range[i] and value_range[i+1]
+        std::make_pair<double, const char *>(1e9, "n"),
+        std::make_pair<double, const char *>(1e6, "µ"),
+        std::make_pair<double, const char *>(1e3, "m"),
+        std::make_pair<double, const char *>(1, ""),
+        std::make_pair<double, const char *>(1e-3, "k"),
+        std::make_pair<double, const char *>(1e-6, "M"),
+        std::make_pair<double, const char *>(1e-9, "G"),
+    };
+    static constexpr const double value_range[si_units.size() + 1] = {
+        std::numeric_limits<double>::min(),
+        1e-6,                                //
+        1e-3,                                //
+        1,                                   //
+        1e3,                                 //
+        1e6,                                 //
+        1e9,                                 //
+        std::numeric_limits<double>::max(),  //
+    };
+    // binary search
+    unsigned short left = 0, right = si_units.size() - 1;
+    unsigned short m = 0;
+    while (left <= right)
     {
-        static constexpr const std::array<std::pair<double, const char *>, 8> si_units = {
-            // let i be the index, then,
-            // si_unit[i] is valid iff its value is betweel value_range[i] and value_range[i+1]
-            std::make_pair<double, const char *>(1e9, "n"),
-            std::make_pair<double, const char *>(1e6, "µ"),
-            std::make_pair<double, const char *>(1e3, "m"),
-            std::make_pair<double, const char *>(1, ""),
-            std::make_pair<double, const char *>(1e-3, "k"),
-            std::make_pair<double, const char *>(1e-6, "M"),
-            std::make_pair<double, const char *>(1e-9, "G"),
-        };
-        static constexpr const double value_range[si_units.size() + 1] = {
-            std::numeric_limits<double>::min(),
-            1e-6,                                //
-            1e-3,                                //
-            1,                                   //
-            1e3,                                 //
-            1e6,                                 //
-            1e9,                                 //
-            std::numeric_limits<double>::max(),  //
-        };
-        // binary search
-        unsigned short left = 0, right = si_units.size() - 1;
-        unsigned short m = 0;
-        while (left <= right)
+        m = (left + right) / 2;
+        if (value_range[m] > value)
         {
-            m = (left + right) / 2;
-            if (value_range[m] > value)
-            {
-                right = m - 1;
-            }
-            else if (value_range[m + 1] <= value)
-            {
-                left = m + 1;
-            }
-            else
-            {
-                break;
-            }
+            right = m - 1;
         }
-        return si_units[m];
+        else if (value_range[m + 1] <= value)
+        {
+            left = m + 1;
+        }
+        else
+        {
+            break;
+        }
     }
+    return si_units[m];
+}
 
-    inline std::pair<double, std::string>
-    _get_time_factor_and_unit(double elapsed, bool fix_width = false)
-    {
-        auto &si_unit = get_si_unit_and_factor(elapsed);
+inline std::pair<double, std::string>
+_get_time_factor_and_unit(double elapsed, bool fix_width = false)
+{
+    auto &si_unit = get_si_unit_and_factor(elapsed);
 
-        //        double factor = 1 / si_unit.first;
-        std::string unit{si_unit.second};
-        if (fix_width && unit.size() < 1)
-            unit = " ";
+    //        double factor = 1 / si_unit.first;
+    std::string unit{si_unit.second};
+    if (fix_width && unit.size() < 1)
+        unit = " ";
 
-        return {si_unit.first, unit + "s"};
-    }
+    return {si_unit.first, unit + "s"};
+}
 
 #define _FIX_WIDTH_DECIMAL(precision) /* +1 is for the decimal point */                            \
     std::setprecision((precision)) << std::left << std::setw((precision) + 1)
 
-    inline std::string format_time2readable(const double elapsed, const int precision = 3)
-    {
-        const auto factor_and_unit = _get_time_factor_and_unit(elapsed, true);
-        std::stringstream ss;
-        ss << _FIX_WIDTH_DECIMAL(precision) << (elapsed * factor_and_unit.first)
-           << factor_and_unit.second;
-        return ss.str();
-    }
+inline std::string format_time2readable(const double elapsed, const int precision = 3)
+{
+    const auto factor_and_unit = _get_time_factor_and_unit(elapsed, true);
+    std::stringstream ss;
+    ss << _FIX_WIDTH_DECIMAL(precision) << (elapsed * factor_and_unit.first)
+       << factor_and_unit.second;
+    return ss.str();
+}
 
-    inline std::string
-    format_time2readable(const std::pair<double, double> &mean_stdev, const int precision = 3)
-    {
-        // use mean to get factor and units
-        const auto factor_and_unit = _get_time_factor_and_unit(mean_stdev.first, true);
-        std::stringstream ss;
-        ss << _FIX_WIDTH_DECIMAL(precision) << (mean_stdev.first * factor_and_unit.first) << "±"
-           << _FIX_WIDTH_DECIMAL(precision) << (mean_stdev.second * factor_and_unit.first)
-           << factor_and_unit.second;
-        return ss.str();
-    }
+inline std::string
+format_time2readable(const std::pair<double, double> &mean_stdev, const int precision = 3)
+{
+    // use mean to get factor and units
+    const auto factor_and_unit = _get_time_factor_and_unit(mean_stdev.first, true);
+    std::stringstream ss;
+    ss << _FIX_WIDTH_DECIMAL(precision) << (mean_stdev.first * factor_and_unit.first) << "±"
+       << _FIX_WIDTH_DECIMAL(precision) << (mean_stdev.second * factor_and_unit.first)
+       << factor_and_unit.second;
+    return ss.str();
+}
 
-    inline std::string
-    format_time2readable(const std::vector<double> &all_elapsed, const int precision = 3)
-    {
-        return format_time2readable(compute_mean_and_stdev(all_elapsed), precision);
-    }
+inline std::string
+format_time2readable(const std::vector<double> &all_elapsed, const int precision = 3)
+{
+    return format_time2readable(compute_mean_and_stdev(all_elapsed), precision);
+}
 
 }  // namespace sxs
 

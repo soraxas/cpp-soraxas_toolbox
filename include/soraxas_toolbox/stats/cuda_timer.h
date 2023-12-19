@@ -43,18 +43,18 @@
 namespace sxs
 {
 
-    template <class Token, size_t BufferSize>
-    class TimeStamperCUDA
-    {
-        static_assert(
-            BufferSize >= 2, "Must be at least of size 2 (1 will be used for begin, and 1 for "
-                             "actual usage"
-        );
+template <class Token, size_t BufferSize>
+class TimeStamperCUDA
+{
+    static_assert(
+        BufferSize >= 2, "Must be at least of size 2 (1 will be used for begin, and 1 for "
+                         "actual usage"
+    );
 
-    public:
-        using token_t = Token;
-        using stat_t = TimeStamperStatIteratorReturnType<Token>;
-        // clang-format off
+public:
+    using token_t = Token;
+    using stat_t = TimeStamperStatIteratorReturnType<Token>;
+    // clang-format off
         // conditionally use smaller size to store index_
         using StorageIndexType =
                 std::conditional_t<
@@ -66,132 +66,131 @@ namespace sxs
                                         uint_fast32_t
                                 >>>;
 
-        // clang-format on
+    // clang-format on
 
-        struct StampedData
-        {
-            Token event;
+    struct StampedData
+    {
+        Token event;
 #ifdef USE_CUDA_CHRONO
-            std::chrono::high_resolution_clock::time_point timepoint;
+        std::chrono::high_resolution_clock::time_point timepoint;
 #else
-            clock_t timepoint;
+        clock_t timepoint;
 #endif
-        };
+    };
 
-        explicit TimeStamperCUDA() = default;
+    explicit TimeStamperCUDA() = default;
 
-        ~TimeStamperCUDA() = default;
+    ~TimeStamperCUDA() = default;
 
-        __forceinline__ __device__ __host__ void reset()
+    __forceinline__ __device__ __host__ void reset()
+    {
+        index_ = 0;
+    }
+
+    template <Token e>
+    __forceinline__ __device__ void stamp()
+    {
+        if (index_ < BufferSize)
         {
-            index_ = 0;
-        }
-
-        template <Token e>
-        __forceinline__ __device__ void stamp()
-        {
-            if (index_ < BufferSize)
-            {
-                events_[index_].event = e;
+            events_[index_].event = e;
 #ifdef USE_CUDA_CHRONO
-                events_[index_].timepoint = std::chrono::high_resolution_clock::now();
+            events_[index_].timepoint = std::chrono::high_resolution_clock::now();
 #else
-                events_[index_].timepoint = clock();
+            events_[index_].timepoint = clock();
 #endif
 
-                ++index_;
-            }
+            ++index_;
+        }
+    }
+
+    //    private:
+
+    StampedData events_[BufferSize];
+    StorageIndexType index_;
+
+    /////////////////////////////////////////////
+    /////////////////////////////////////////////
+
+    // member typedefs provided through inheriting from std::iterator
+    class iterator
+    {
+        const StampedData *events_data_ref_;
+        long num;
+
+    public:
+        explicit iterator(const StampedData *ref, long _num) : events_data_ref_(ref), num(_num)
+        {
         }
 
-        //    private:
-
-        StampedData events_[BufferSize];
-        StorageIndexType index_;
-
-        /////////////////////////////////////////////
-        /////////////////////////////////////////////
-
-        // member typedefs provided through inheriting from std::iterator
-        class iterator
+        iterator &operator++()
         {
-            const StampedData *events_data_ref_;
-            long num;
+            num++;
+            return *this;
+        }
 
-        public:
-            explicit iterator(const StampedData *ref, long _num) : events_data_ref_(ref), num(_num)
-            {
-            }
+        iterator operator++(int)
+        {
+            iterator retval = *this;
+            ++(*this);
+            return retval;
+        }
 
-            iterator &operator++()
-            {
-                num++;
-                return *this;
-            }
+        bool operator==(iterator other) const
+        {
+            return num == other.num;
+        }
 
-            iterator operator++(int)
-            {
-                iterator retval = *this;
-                ++(*this);
-                return retval;
-            }
+        bool operator!=(iterator other) const
+        {
+            return !(*this == other);
+        }
 
-            bool operator==(iterator other) const
-            {
-                return num == other.num;
-            }
-
-            bool operator!=(iterator other) const
-            {
-                return !(*this == other);
-            }
-
-            stat_t operator*() const
-            {
-                //                double dur = ((double) (events_data_ref_[num + 1].timepoint -
-                //                events_data_ref_[num].timepoint
-                //                )) / CLOCKS_PER_SEC / CLOCKS_PER_SEC / CLOCKS_PER_SEC;
-                //                 std::cout << dur << " " << events_data_ref_[num ].timepoint <<
-                //                 std::endl;
-                assert(num + 1 < index_);
-                assert(events_data_ref_[num].timepoint < events_data_ref_[num + 1].timepoint);
-                return std::make_tuple<Token, Token, double>(
-                    ((Token)events_data_ref_[num].event), ((Token)events_data_ref_[num + 1].event),
+        stat_t operator*() const
+        {
+            //                double dur = ((double) (events_data_ref_[num + 1].timepoint -
+            //                events_data_ref_[num].timepoint
+            //                )) / CLOCKS_PER_SEC / CLOCKS_PER_SEC / CLOCKS_PER_SEC;
+            //                 std::cout << dur << " " << events_data_ref_[num ].timepoint <<
+            //                 std::endl;
+            assert(num + 1 < index_);
+            assert(events_data_ref_[num].timepoint < events_data_ref_[num + 1].timepoint);
+            return std::make_tuple<Token, Token, double>(
+                ((Token)events_data_ref_[num].event), ((Token)events_data_ref_[num + 1].event),
 #ifdef USE_CUDA_CHRONO
-                    std::chrono::duration<double, std::ratio<1>>(
-                        events_data_ref_[num + 1].timepoint - events_data_ref_[num].timepoint
-                    )
+                std::chrono::duration<double, std::ratio<1>>(
+                    events_data_ref_[num + 1].timepoint - events_data_ref_[num].timepoint
+                )
 #else
-                    ((double)(events_data_ref_[num + 1].timepoint - events_data_ref_[num].timepoint)
-                    ) / CLOCKS_PER_SEC /
-                        CLOCKS_PER_SEC / CLOCKS_PER_SEC
+                ((double)(events_data_ref_[num + 1].timepoint - events_data_ref_[num].timepoint)) /
+                    CLOCKS_PER_SEC / CLOCKS_PER_SEC / CLOCKS_PER_SEC
 #endif
-                );
-            }
-        };
-
-        iterator begin() const
-        {
-            return iterator(events_, 0);
-        }
-
-        iterator end() const
-        {
-            // FIXME currently this will leads to begin() == end() never be true if the container is
-            // empty
-            return iterator(events_, index_ - 1);
-        }
-
-        bool check_validity() const
-        {
-            if (index_ >= BufferSize - 1)
-            {
-                printf("================ WARNING ====================\n");
-                printf(" Buffer is full capacity at %u/%u\n", index_, BufferSize);
-                printf(" Some measurement might be missing.\n");
-                printf("=============================================\n");
-                return false;
-            }
-            return true;
+            );
         }
     };
+
+    iterator begin() const
+    {
+        return iterator(events_, 0);
+    }
+
+    iterator end() const
+    {
+        // FIXME currently this will leads to begin() == end() never be true if the container is
+        // empty
+        return iterator(events_, index_ - 1);
+    }
+
+    bool check_validity() const
+    {
+        if (index_ >= BufferSize - 1)
+        {
+            printf("================ WARNING ====================\n");
+            printf(" Buffer is full capacity at %u/%u\n", index_, BufferSize);
+            printf(" Some measurement might be missing.\n");
+            printf("=============================================\n");
+            return false;
+        }
+        return true;
+    }
+};
 }  // namespace sxs

@@ -39,22 +39,22 @@
 
 namespace sxs
 {
-    inline std::string get_home_dir()
+inline std::string get_home_dir()
+{
+    /*
+     * Return the current home directory
+     */
+    const char *homedir;
+
+    // Check $HOME environment variable first before retrieving user's
+    // homedir
+    if ((homedir = getenv("HOME")) == NULL)
     {
-        /*
-         * Return the current home directory
-         */
-        const char *homedir;
-
-        // Check $HOME environment variable first before retrieving user's
-        // homedir
-        if ((homedir = getenv("HOME")) == NULL)
-        {
-            homedir = getpwuid(getuid())->pw_dir;
-        }
-
-        return homedir;
+        homedir = getpwuid(getuid())->pw_dir;
     }
+
+    return homedir;
+}
 }  // namespace sxs
 
 #endif  // SXS_PATH_UTILS_H
