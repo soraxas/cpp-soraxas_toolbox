@@ -232,6 +232,29 @@ namespace eigen
             return input.array().rowwise() / input.colwise().norm().array();
     }
 
+    /**
+     * This function takes in a set of points, a target segment distance, and optional flags for
+     * including the last point and intermediate points.
+     *
+     * The return value is a list of points what had "walked" equal distance along the path.
+     * Note that it DOES NOT guarentee the distance between each consecutive points have the
+     * specified distance (and in face, it will always be less than or equal to the target segment
+     * distance). However, each consecutive points had ineed "walked" the specified distance along
+     * the given path
+     *
+     * See:
+     * https://github.com/soraxas/plotting-gallery/blob/51c7cc7cb3d753b1f4988609499082f91ba56dfa/plots/Subdivide_points_with_equal_distance.ipynb
+     *
+     * Essentially, we:
+     * 1. Calculates the distance along the segment between consecutive points
+     * 2. Enters a while-loop to subdivide the current segment into smaller segments if its length
+     * exceeds the target_segdist.
+     * 3. Computes the remaining distance needed to reach the target_segdist from the current point.
+     * 4. Interpolates a new point along the segment based on the remaining distance or solely based
+     * on the current segment if no distance is left over from previous segments.
+     * 5. Stores the interpolated point in the output vector
+     *
+     */
     template <typename DataType, int Rows>
     auto subdivide_line_segments_equal_distance(
         const std::vector<Eigen::Matrix<DataType, Rows, 1>> &points, DataType target_segdist,
