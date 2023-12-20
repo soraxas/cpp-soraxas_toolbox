@@ -332,6 +332,8 @@ namespace eigen
  * -------------------------------------------
  */
 
+#include "eigen_helpers.h"
+
 template <typename Derived>
 void check_vector_of_eigen_vectors_are_equal(
     const std::vector<Derived> &expected, const std::vector<Derived> &reality
@@ -574,6 +576,18 @@ TEST_CASE("[sxs eigen_math] check subdivide_line_segments_equal_distance")
                 {1., 3.38},  //
                 {1., 4.11},  //
                 {1.34, 4.5}};
+            SUBCASE("test using MatrixXd as input")
+            {
+                Eigen::MatrixXd input_(4, 2);
+                input_ << 0., 0.,  //
+                    1., 0.,        //
+                    1., 4.5,       //
+                    1.51, 4.5;
+                input = map_eigen_mat_to_std_vector<2>(input_);
+            }
+            SUBCASE("normal case")
+            {
+            }
             check_vector_of_eigen_vectors_are_equal(
                 expected, sxs::eigen::subdivide_line_segments_equal_distance(input, .73)
             );

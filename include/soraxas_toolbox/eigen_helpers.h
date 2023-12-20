@@ -110,6 +110,41 @@ auto eigen_as_vec(const Eigen::Matrix<double, Num, 1> &mat)
     return std::vector<double>(mat.data(), mat.data() + mat.size());
 }
 
+/**
+ * Maps the memory of a std::vector<std::array<double,3>> to a writable Eigen type using Eigen::Map.
+ *
+ * This can convert a given MatrixXd (e.g. 100 rows x 3 cols)
+ * into a std::vector<Vector3d> of 100 corresponding rows.
+ *
+ */
+template <int Num, typename DataType>
+auto map_eigen_mat_to_std_vector(const Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic> &mat)
+{
+    using MatXXdR = Eigen::Matrix<DataType, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+
+    if (mat.rows() < 1)
+    {
+        throw std::runtime_error("empty matrix given");
+    }
+    std::vector<Eigen::Matrix<DataType, Num, 1>> raw_data;
+
+    // allocate memory for Nx3 entries
+    raw_data.resize(mat.rows());
+
+    assert(mat.cols() == Num);
+    if (mat.cols() != Num)
+    {
+        throw std::runtime_error("Mismatch of matix column number and the requested vector "
+                                 "dimension");
+    }
+
+    // Copy mat to raw_data:
+
+    MatXXdR::Map(raw_data[0].data(), mat.rows(), mat.cols()) = mat;
+
+    return raw_data;
+}
+
 // template <typename T>
 // class PreAllocator {
 // private:
