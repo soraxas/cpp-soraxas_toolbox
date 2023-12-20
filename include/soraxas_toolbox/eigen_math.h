@@ -27,6 +27,8 @@
 
 #pragma once
 
+#include "print_utils_core.h"
+
 #include <Eigen/Dense>
 
 namespace sxs
@@ -229,6 +231,74 @@ namespace eigen
         else
             return input.array().rowwise() / input.colwise().norm().array();
     }
+
+    template <typename DataType, int Rows>
+    auto subdivide_line_segments_equal_distance(
+        const std::vector<Eigen::Matrix<DataType, Rows, 1>> &points, DataType target_segdist,
+        bool include_last_pt = false, bool include_intermediate_pt = false
+    )
+    {
+        using VectorType = Eigen::Matrix<DataType, Rows, 1>;
+
+        if (points.size() < 1)
+            return std::vector<VectorType>{};
+
+        std::vector<VectorType> out;
+        out.push_back(points[0]);
+
+        DataType dist_leftover = 0.0;
+        for (int i = 1; i < points.size(); ++i)
+        {
+            DataType dist_along_segment = (points[i] - points[i - 1]).norm();
+
+            VectorType diff_vec = points[i] - points[i - 1];
+            VectorType diff_unit_vec = diff_vec.normalized();
+
+            // Check if adding the current segment exceeds the required distance for sampling
+            while (dist_leftover + dist_along_segment >= target_segdist)
+            {
+                DataType remaining_distance = target_segdist - dist_leftover;
+
+                VectorType interpolated_point;
+                if (dist_leftover > 0)
+                {
+                    // left-over from last segment
+                    double ratio = remaining_distance / dist_along_segment;
+                    interpolated_point = points[i - 1] + ratio * diff_vec;
+                }
+                else
+                {
+                    // purely from the current segment
+                    interpolated_point = out.back() + diff_unit_vec * target_segdist;
+                }
+
+                // reset
+                dist_leftover = 0.0;
+                out.push_back(interpolated_point);
+                // walk along this segment
+                dist_along_segment -= remaining_distance;
+            }
+
+            // left over from this segment.
+            dist_leftover += dist_along_segment;
+
+            if (include_intermediate_pt && dist_leftover > 0)
+            {
+                // snap to the end of this segment
+                out.push_back(points[i]);
+                dist_leftover = 0;
+            }
+        }
+
+        if (include_last_pt && dist_leftover > 0)
+        {
+            // snap to the end of whole path
+            out.push_back(points[points.size() - 1]);
+        }
+
+        return out;
+    }
+
 }  // namespace eigen
 }  // namespace sxs
 
@@ -238,6 +308,21 @@ namespace eigen
  * Test cases and general usage for this file:
  * -------------------------------------------
  */
+
+template <typename Derived>
+void check_vector_of_eigen_vectors_are_equal(
+    const std::vector<Derived> &expected, const std::vector<Derived> &reality
+)
+{
+    CHECK_EQ(expected.size(), reality.size());
+    for (size_t i = 0; i < std::min(expected.size(), reality.size()); ++i)
+    {
+        for (size_t j = 0; j < expected[i].size(); ++j)
+        {
+            CHECK(expected[i][j] == doctest::Approx(reality[i][j]));
+        }
+    }
+}
 
 TEST_CASE("[sxs eigen_math] check expanding boundary")
 {
@@ -329,6 +414,148 @@ TEST_CASE("[sxs eigen_math] check cumsum")
     CHECK_EQ(output.rows(), expected_output.rows());
     CHECK_EQ(output.cols(), expected_output.cols());
     CHECK_EQ(output, expected_output);
+}
+
+TEST_CASE("[sxs eigen_math] check subdivide_line_segments_equal_distance")
+{
+    using namespace sxs::eigen;
+
+    SUBCASE("point list 1")
+    {
+        std::vector<Eigen::Vector2d> input = {
+            {0., 0.},    //
+            {1., 0.},    //
+            {5., 5.},    //
+            {5., 8.},    //
+            {5.5, 10.},  //
+            {10., 0.}};
+
+        SUBCASE("1")
+        {
+            std::vector<Eigen::Vector2d> expected = {
+                {0., 0.},                  //
+                {3.49878019, 3.12347524},  //
+                {5., 7.59687576},          //
+                {6.54040698, 7.68798448},  //
+                {8.59223037, 3.1283769}};
+
+            check_vector_of_eigen_vectors_are_equal(
+                expected, sxs::eigen::subdivide_line_segments_equal_distance(input, 5.)
+            );
+        }
+
+        SUBCASE("2")
+        {
+            std::vector<Eigen::Vector2d> expected = {
+                {0., 0.},                  //
+                {1.37481703, 0.46852129},  //
+                {2.3743291, 1.71791138},   //
+                {3.37384118, 2.96730148},  //
+                {4.37335326, 4.21669157},  //
+                {5., 5.59687576},          //
+                {5., 7.19687576},          //
+                {5.19327076, 8.77308304},  //
+                {5.63760469, 9.69421179},  //
+                {6.29418818, 8.23513738},  //
+                {6.95077166, 6.77606297},  //
+                {7.60735515, 5.31698857},  //
+                {8.26393863, 3.85791416},  //
+                {8.92052211, 2.39883975},  //
+                {9.5771056, 0.9397653}};
+            check_vector_of_eigen_vectors_are_equal(
+                expected, sxs::eigen::subdivide_line_segments_equal_distance(input, 1.6)
+            );
+        }
+
+        SUBCASE("3")
+        {
+            std::vector<Eigen::Vector2d> expected = {
+                {0., 0.},                  //
+                {1., 0.},                  //
+                {1.99951208, 1.2493901},   //
+                {2.99902415, 2.49878019},  //
+                {3.99853623, 3.74817029},  //
+                {4.9980483, 4.99756038},   //
+                {5., 5.},                  //
+                {5., 6.6},                 //
+                {5., 8.},                  //
+                {5.388057, 9.552228},      //
+                {5.5, 10.},                //
+                {6.15658348, 8.54092559},  //
+                {6.81316697, 7.08185118},  //
+                {7.46975045, 5.62277678},  //
+                {8.12633393, 4.16370237},  //
+                {8.78291742, 2.70462796},  //
+                {9.4395009, 1.24555355},   //
+                {10., 0.}};
+            check_vector_of_eigen_vectors_are_equal(
+                expected,
+                sxs::eigen::subdivide_line_segments_equal_distance(input, 1.6, false, true)
+            );
+        }
+    }
+
+    SUBCASE("point list 2")
+    {
+        std::vector<Eigen::Vector2d> input = {
+            {0., 0.},   //
+            {1., 0.},   //
+            {1., 4.5},  //
+            {1.51, 4.5}};
+
+        SUBCASE("1")
+        {
+            std::vector<Eigen::Vector2d> expected = {
+                {0., 0.},    //
+                {0.75, 0.},  //
+                {1., 0.5},   //
+                {1., 1.25},  //
+                {1., 2.},    //
+                {1., 2.75},  //
+                {1., 3.5},   //
+                {1., 4.25},  //
+                {1.5, 4.5},  //
+                {1.51, 4.5}};
+            check_vector_of_eigen_vectors_are_equal(
+                expected, sxs::eigen::subdivide_line_segments_equal_distance(input, .75, true)
+            );
+        }
+
+        SUBCASE("2")
+        {
+            std::vector<Eigen::Vector2d> expected = {
+                {0., 0.},     //
+                {0.73, 0.},   //
+                {1., 0.46},   //
+                {1., 1.19},   //
+                {1., 1.92},   //
+                {1., 2.65},   //
+                {1., 3.38},   //
+                {1., 4.11},   //
+                {1.34, 4.5},  //
+                {1.51, 4.5}};
+            check_vector_of_eigen_vectors_are_equal(
+                expected, sxs::eigen::subdivide_line_segments_equal_distance(input, .73, true)
+            );
+        }
+
+        SUBCASE("3")
+        {
+            std::vector<Eigen::Vector2d> expected = {
+                {0., 0.},    //
+                {0.73, 0.},  //
+                {1., 0.46},  //
+                {1., 1.19},  //
+                {1., 1.92},  //
+                {1., 2.65},  //
+                {1., 3.38},  //
+                {1., 4.11},  //
+                {1.34, 4.5}};
+            check_vector_of_eigen_vectors_are_equal(
+                expected, sxs::eigen::subdivide_line_segments_equal_distance(input, .73)
+            );
+        }
+    }
 }
 
 #endif  // SXS_RUN_TESTS
