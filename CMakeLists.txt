@@ -7,7 +7,7 @@ target_include_directories(soraxas_toolbox INTERFACE include)
 target_compile_features(soraxas_toolbox INTERFACE cxx_std_17)
 
 
-option(BUILD_SXS_WITH_EXTERNAL_DEPS "perform a git submodule clone")
+option(BUILD_SXS_WITH_EXTERNAL_DEPS "perform a git submodule clone" OFF)
 if(BUILD_SXS_WITH_EXTERNAL_DEPS)
   find_package(Git REQUIRED)
   if(NOT EXISTS include/soraxas_toolbox/external/_repo/pprint/CMakeLists.txt)
