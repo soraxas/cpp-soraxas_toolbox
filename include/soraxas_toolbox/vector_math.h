@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2019-2023 Tin Yiu Lai (@soraxas)
+ * Copyright (c) 2019-2025 Tin Yiu Lai (@soraxas)
  *
  * This file is part of the project soraxas_toolbox, a collections of utilities
  * for developing c++ applications.
